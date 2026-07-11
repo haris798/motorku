@@ -1,0 +1,6 @@
+{
+  "name": "Oil & Fuel Tracker Motor",
+  "description": "A comprehensive motorcycle maintenance, fuel efficiency, and oil change tracker with offline sync, Telegram alerts, and Supabase integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
