@@ -1,0 +1,58 @@
+{
+  "name": "Motor.ku - Jurnal Oli & BBM",
+  "short_name": "Motor.ku",
+  "description": "Aplikasi pelacak servis oli, bahan bakar (BBM), dan efisiensi sepeda motor dengan sinkronisasi cloud.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/pwa_icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa_icon_maskable.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot_mobile.jpg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Tampilan Mobile Motor.ku"
+    },
+    {
+      "src": "/screenshot_desktop.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Tampilan Desktop Motor.ku"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catatan Oli",
+      "short_name": "Oli",
+      "url": "/?tab=oil",
+      "description": "Buka tab riwayat dan tambah catatan ganti oli",
+      "icons": [{ "src": "/pwa_icon.jpg", "sizes": "512x512" }]
+    },
+    {
+      "name": "Catatan BBM",
+      "short_name": "BBM",
+      "url": "/?tab=fuel",
+      "description": "Buka tab riwayat dan tambah catatan pengisian bahan bakar",
+      "icons": [{ "src": "/pwa_icon.jpg", "sizes": "512x512" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
