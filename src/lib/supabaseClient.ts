@@ -139,7 +139,15 @@ export async function syncWithSupabase(
           rating: local.rating || 5,
           updated_at: local.updated_at || new Date().toISOString()
         });
-        if (insErr) console.error('Gagal upload oli log:', insErr);
+        if (insErr) {
+          console.error('Gagal upload oli log:', insErr);
+        } else {
+          // Sync user_id back to local merged list so it's persisted properly
+          const index = mergedOilLogs.findIndex(item => item.id === local.id);
+          if (index !== -1) {
+            mergedOilLogs[index].user_id = userId;
+          }
+        }
       } else {
         // Exists in both -> Compare timestamps
         const localTime = new Date(local.updated_at || 0).getTime();
@@ -228,7 +236,15 @@ export async function syncWithSupabase(
           notes: local.notes || '',
           updated_at: local.updated_at || new Date().toISOString()
         });
-        if (insErr) console.error('Gagal upload bbm log:', insErr);
+        if (insErr) {
+          console.error('Gagal upload bbm log:', insErr);
+        } else {
+          // Sync user_id back to local merged list so it's persisted properly
+          const index = mergedFuelLogs.findIndex(item => item.id === local.id);
+          if (index !== -1) {
+            mergedFuelLogs[index].user_id = userId;
+          }
+        }
       } else {
         // Compare timestamps
         const localTime = new Date(local.updated_at || 0).getTime();

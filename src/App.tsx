@@ -228,7 +228,7 @@ export default function App() {
   };
 
   // Perform full database cloud sync
-  const handleTriggerSync = async () => {
+  const handleTriggerSync = async (customOilLogs?: OilLog[], customFuelLogs?: FuelLog[]) => {
     if (!isOnline) {
       alert('Tidak ada koneksi internet. Sinkronisasi ditunda.');
       return;
@@ -237,7 +237,9 @@ export default function App() {
     setSyncProgressMsg('Menghubungkan ke Supabase...');
 
     try {
-      const result = await syncWithSupabase(oilLogs, fuelLogs, (progress) => {
+      const logsToSyncOil = customOilLogs || oilLogs;
+      const logsToSyncFuel = customFuelLogs || fuelLogs;
+      const result = await syncWithSupabase(logsToSyncOil, logsToSyncFuel, (progress) => {
         setSyncProgressMsg(progress);
       });
 
@@ -304,7 +306,7 @@ export default function App() {
     localStorage.setItem('oil_tracker_oil_logs', JSON.stringify(updated));
 
     if (settings.supabase.connected && user) {
-      handleTriggerSync();
+      handleTriggerSync(updated, undefined);
     }
   };
 
@@ -323,7 +325,7 @@ export default function App() {
     localStorage.setItem('oil_tracker_oil_logs', JSON.stringify(updated));
 
     if (settings.supabase.connected && user) {
-      handleTriggerSync();
+      handleTriggerSync(updated, undefined);
     }
   };
 
@@ -338,7 +340,7 @@ export default function App() {
     localStorage.setItem('deleted_log_ids', JSON.stringify(deletedIds));
 
     if (settings.supabase.connected && user) {
-      handleTriggerSync();
+      handleTriggerSync(updated, undefined);
     }
   };
 
@@ -354,7 +356,7 @@ export default function App() {
     localStorage.setItem('oil_tracker_fuel_logs', JSON.stringify(updated));
 
     if (settings.supabase.connected && user) {
-      handleTriggerSync();
+      handleTriggerSync(undefined, updated);
     }
   };
 
@@ -373,7 +375,7 @@ export default function App() {
     localStorage.setItem('oil_tracker_fuel_logs', JSON.stringify(updated));
 
     if (settings.supabase.connected && user) {
-      handleTriggerSync();
+      handleTriggerSync(undefined, updated);
     }
   };
 
@@ -388,7 +390,7 @@ export default function App() {
     localStorage.setItem('deleted_log_ids', JSON.stringify(deletedIds));
 
     if (settings.supabase.connected && user) {
-      handleTriggerSync();
+      handleTriggerSync(undefined, updated);
     }
   };
 
