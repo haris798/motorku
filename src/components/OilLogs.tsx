@@ -31,6 +31,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
     setCost('');
     setFormError(null);
     setEditingId(null);
+    setIsFormOpen(false);
   };
 
   const handleOpenAdd = () => {

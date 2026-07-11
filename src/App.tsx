@@ -9,8 +9,7 @@ import OilLogs from './components/OilLogs';
 import FuelLogs from './components/FuelLogs';
 import SettingsTab from './components/SettingsTab';
 import { 
-  Gauge, Droplets, Fuel, Settings, LogIn, Cloud, CloudOff, FileSpreadsheet, FileText, 
-  HelpCircle, Sparkles, CheckCircle2, ChevronRight, Menu, X, ArrowUpRight, RefreshCw,
+  Gauge, Droplets, Fuel, Settings, Cloud, CloudOff, FileSpreadsheet, FileText, RefreshCw,
   Sun, Moon, LogOut
 } from 'lucide-react';
 
@@ -59,7 +58,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   // Sync state tracking
@@ -69,6 +67,13 @@ export default function App() {
     isSyncing: false,
   });
   const [syncProgressMsg, setSyncProgressMsg] = useState<string>('');
+
+  const tabsList = [
+    { id: 'dashboard', label: 'Dashboard', icon: Gauge },
+    { id: 'oil', label: 'Ganti Oli', icon: Droplets },
+    { id: 'fuel', label: 'BBM & Efisiensi', icon: Fuel },
+    { id: 'settings', label: 'Pengaturan', icon: Settings },
+  ];
 
   // 2. Load cached data on mount
   useEffect(() => {
@@ -388,7 +393,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300 flex flex-col md:flex-row overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300 flex flex-col md:flex-row overflow-hidden pb-16 md:pb-0">
       
       {/* 1. Desktop Sidebar (md and larger) */}
       <aside className="hidden md:flex w-64 border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col shrink-0 h-screen sticky top-0 justify-between select-none">
@@ -417,61 +422,25 @@ export default function App() {
 
           {/* Nav Tabs */}
           <nav className="p-4 space-y-1 flex-1">
-            <button
-              id="tab-dash"
-              onClick={() => setActiveTab('dashboard')}
-              className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all flex items-center gap-3 cursor-pointer ${
-                activeTab === 'dashboard'
-                  ? 'bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-100/40 dark:border-indigo-900/20'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent'
-              }`}
-            >
-              <div className={`w-1 h-4 rounded-full ${activeTab === 'dashboard' ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-transparent'}`} />
-              <Gauge className="w-4 h-4" />
-              <span>Dashboard</span>
-            </button>
-
-            <button
-              id="tab-oil"
-              onClick={() => setActiveTab('oil')}
-              className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all flex items-center gap-3 cursor-pointer ${
-                activeTab === 'oil'
-                  ? 'bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-100/40 dark:border-indigo-900/20'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent'
-              }`}
-            >
-              <div className={`w-1 h-4 rounded-full ${activeTab === 'oil' ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-transparent'}`} />
-              <Droplets className="w-4 h-4" />
-              <span>Ganti Oli</span>
-            </button>
-
-            <button
-              id="tab-fuel"
-              onClick={() => setActiveTab('fuel')}
-              className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all flex items-center gap-3 cursor-pointer ${
-                activeTab === 'fuel'
-                  ? 'bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-100/40 dark:border-indigo-900/20'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent'
-              }`}
-            >
-              <div className={`w-1 h-4 rounded-full ${activeTab === 'fuel' ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-transparent'}`} />
-              <Fuel className="w-4 h-4" />
-              <span>BBM & Efisiensi</span>
-            </button>
-
-            <button
-              id="tab-settings"
-              onClick={() => setActiveTab('settings')}
-              className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all flex items-center gap-3 cursor-pointer ${
-                activeTab === 'settings'
-                  ? 'bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-100/40 dark:border-indigo-900/20'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent'
-              }`}
-            >
-              <div className={`w-1 h-4 rounded-full ${activeTab === 'settings' ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-transparent'}`} />
-              <Settings className="w-4 h-4" />
-              <span>Pengaturan</span>
-            </button>
+            {tabsList.map((tab) => {
+              const IconComponent = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all flex items-center gap-3 cursor-pointer ${
+                    isActive
+                      ? 'bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-100/40 dark:border-indigo-900/20'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent'
+                  }`}
+                >
+                  <div className={`w-1 h-4 rounded-full ${isActive ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-transparent'}`} />
+                  <IconComponent className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </nav>
         </div>
 
@@ -530,7 +499,7 @@ export default function App() {
       <div className="flex-1 flex flex-col h-screen overflow-y-auto min-w-0">
         
         {/* Mobile Header (md and smaller) */}
-        <header className="sticky top-0 z-45 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 transition-colors md:hidden shrink-0">
+        <header className="sticky top-0 z-45 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 transition-colors md:hidden shrink-0">
           <div className="px-4 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
               <span className="p-2 bg-indigo-600 rounded-xl text-white shadow-md">
@@ -538,98 +507,81 @@ export default function App() {
               </span>
               <div>
                 <h1 className="text-xs font-black tracking-tight text-slate-900 dark:text-white font-display leading-none">
-                  MOTO-LOG
+                  Motor .ku Tracker
                 </h1>
-                <span className="text-[9px] text-slate-450">Jurnal Servis & BBM</span>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500">Jurnal Servis & BBM</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={handleToggleDarkMode}
-                className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg cursor-pointer transition-all"
+                className="p-2 bg-slate-50 dark:bg-slate-800/60 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-xl cursor-pointer transition-all border border-slate-100 dark:border-slate-800/40"
+                title="Ganti Tema"
               >
-                {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {darkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
               </button>
-              
-              <button
-                id="mobile-menu-trigger"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg cursor-pointer"
-              >
-                {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-              </button>
+
+              {user ? (
+                <button 
+                  onClick={handleLogout}
+                  title={`Keluar: ${user.email}`}
+                  className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all flex items-center gap-1 border border-emerald-100 dark:border-emerald-900/20"
+                >
+                  <Cloud className="w-4 h-4 text-emerald-500 animate-pulse" />
+                  <LogOut className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  title="Hubungkan ke Cloud"
+                  className="p-2 bg-slate-50 dark:bg-slate-850 text-slate-400 hover:text-indigo-600 rounded-xl transition-all border border-slate-100 dark:border-slate-800/60"
+                >
+                  <CloudOff className="w-4 h-4 text-rose-400" />
+                </button>
+              )}
             </div>
           </div>
-
-          {/* Mobile menu dropdown */}
-          {mobileMenuOpen && (
-            <div className="border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 space-y-1.5 shadow-xl">
-              <button
-                onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }}
-                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 ${
-                  activeTab === 'dashboard' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                <Gauge className="w-4 h-4" />
-                <span>Dashboard</span>
-              </button>
-              <button
-                onClick={() => { setActiveTab('oil'); setMobileMenuOpen(false); }}
-                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 ${
-                  activeTab === 'oil' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                <Droplets className="w-4 h-4" />
-                <span>Ganti Oli</span>
-              </button>
-              <button
-                onClick={() => { setActiveTab('fuel'); setMobileMenuOpen(false); }}
-                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 ${
-                  activeTab === 'fuel' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                <Fuel className="w-4 h-4" />
-                <span>BBM & Efisiensi</span>
-              </button>
-              <button
-                onClick={() => { setActiveTab('settings'); setMobileMenuOpen(false); }}
-                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 ${
-                  activeTab === 'settings' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                <Settings className="w-4 h-4" />
-                <span>Pengaturan</span>
-              </button>
-
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold p-2 bg-slate-50 dark:bg-slate-850 rounded-lg text-slate-500">
-                  <span className="flex items-center gap-1.5">
-                    {isOnline ? <Cloud className="w-3.5 h-3.5 text-emerald-500" /> : <CloudOff className="w-3.5 h-3.5 text-rose-500" />}
-                    Konektivitas
-                  </span>
-                  <span className={isOnline ? 'text-emerald-600' : 'text-rose-600'}>
-                    {isOnline ? 'Online' : 'Offline'}
-                  </span>
-                </div>
-
-                {user ? (
-                  <div className="flex items-center justify-between text-xs p-2 bg-slate-50 dark:bg-slate-850 rounded-lg">
-                    <span className="text-slate-500 font-bold">Cloud Account</span>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{user.email.split('@')[0]}</span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => { setAuthModalOpen(true); setMobileMenuOpen(false); }}
-                    className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold cursor-pointer"
-                  >
-                    Hubungkan Cloud
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </header>
+
+        {/* Dynamic Mobile Bottom Navigation Bar (App Tensi Style) */}
+        <nav id="mobile-bottom-nav" className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-150 dark:border-slate-800/80 pb-safe-bottom z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.25)] flex items-center justify-around h-16 select-none">
+          {tabsList.map((tab) => {
+            const IconComponent = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex-1 flex flex-col items-center justify-center h-full relative cursor-pointer group transition-all"
+              >
+                <div className={`absolute inset-y-1.5 inset-x-2 rounded-2xl transition-all duration-300 -z-10 ${
+                  isActive 
+                    ? 'bg-indigo-50/60 dark:bg-indigo-950/20' 
+                    : 'bg-transparent group-hover:bg-slate-50 dark:group-hover:bg-slate-800/10'
+                }`} />
+                
+                <IconComponent className={`w-5 h-5 transition-all duration-300 ${
+                  isActive 
+                    ? 'text-indigo-600 dark:text-indigo-400 scale-110' 
+                    : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400'
+                }`} />
+                
+                <span className={`text-[9px] mt-1 font-bold tracking-wide transition-all duration-300 ${
+                  isActive 
+                    ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
+                    : 'text-slate-400 dark:text-slate-500'
+                }`}>
+                  {tab.label}
+                </span>
+
+                {isActive && (
+                  <span className="absolute bottom-1 w-1 h-1 bg-indigo-600 dark:bg-indigo-400 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.6)]" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
         {/* Desktop Header Row (md and larger) */}
         <header className="hidden md:flex h-20 border-b border-slate-150 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md items-center justify-between px-8 select-none shrink-0">
@@ -723,7 +675,7 @@ export default function App() {
         )}
 
         {/* 3. Main Stage Container */}
-        <main className="flex-1 p-6 sm:p-8 overflow-y-auto max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 p-6 sm:p-8 pb-28 md:pb-8 overflow-y-auto max-w-7xl w-full mx-auto space-y-6">
           {activeTab === 'dashboard' && (
             <Dashboard
               oilLogs={oilLogs}

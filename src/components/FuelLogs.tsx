@@ -31,6 +31,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
     setCost('');
     setFormError(null);
     setEditingId(null);
+    setIsFormOpen(false);
   };
 
   const handleOpenAdd = () => {
