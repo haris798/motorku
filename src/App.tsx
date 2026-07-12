@@ -719,6 +719,8 @@ export default function App() {
               settings={settings}
               syncStatus={syncStatus}
               user={user}
+              oilLogs={oilLogs}
+              fuelLogs={fuelLogs}
               onUpdateSettings={handleUpdateSettings}
               onTriggerSync={handleTriggerSync}
               onOpenAuth={() => setAuthModalOpen(true)}

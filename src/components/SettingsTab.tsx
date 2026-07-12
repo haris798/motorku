@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { AppSettings, SyncStatus } from '../types';
+import { AppSettings, SyncStatus, OilLog, FuelLog } from '../types';
 import { testSupabaseConnection, SUPABASE_SQL_SCRIPT } from '../lib/supabaseClient';
 import { sendTelegramNotification } from '../utils/telegram';
 import { 
   Settings, Database, Send, Calendar, Milestone, Moon, Sun, Eye, EyeOff, 
-  Clipboard, Check, ShieldCheck, HelpCircle, LogIn, LogOut, RefreshCw, AlertTriangle
+  Clipboard, Check, ShieldCheck, HelpCircle, LogIn, LogOut, RefreshCw, AlertTriangle,
+  Download
 } from 'lucide-react';
 
 interface SettingsTabProps {
   settings: AppSettings;
   syncStatus: SyncStatus;
   user: any;
+  oilLogs: OilLog[];
+  fuelLogs: FuelLog[];
   onUpdateSettings: (newSettings: AppSettings) => void;
   onTriggerSync: () => Promise<void>;
   onOpenAuth: () => void;
@@ -23,6 +26,8 @@ export default function SettingsTab({
   settings,
   syncStatus,
   user,
+  oilLogs,
+  fuelLogs,
   onUpdateSettings,
   onTriggerSync,
   onOpenAuth,
@@ -142,6 +147,40 @@ export default function SettingsTab({
     setTimeout(() => setCopiedSql(false), 2500);
   };
 
+  // Download all logs as backup JSON file
+  const handleDownloadBackup = () => {
+    try {
+      const backupData = {
+        app: 'Motor.ku Tracker',
+        exportedAt: new Date().toISOString(),
+        version: '1.0.0',
+        data: {
+          oilLogs,
+          fuelLogs,
+          settings
+        }
+      };
+
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.href = url;
+      
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadAnchor.download = `motorku_backup_${dateStr}.json`;
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      
+      // Cleanup
+      document.body.removeChild(downloadAnchor);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Gagal mengunduh cadangan:', error);
+      alert('Gagal membuat file cadangan.');
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* 1. Header & General Controls */}
@@ -251,6 +290,33 @@ export default function SettingsTab({
             </button>
           </div>
         </form>
+      </div>
+
+      {/* 2.5 Backup & Data Export Card */}
+      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
+        <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2 border-b border-slate-50 dark:border-slate-800 pb-3">
+          <Download className="w-5 h-5 text-indigo-500" /> Cadangan & Ekspor Data
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+          Amankan data Anda secara mandiri. Unduh seluruh riwayat ganti oli dan catatan konsumsi bahan bakar (BBM) Anda dalam format file JSON. File cadangan ini dapat Anda simpan secara lokal sebagai tindakan pencegahan kehilangan data jika terjadi kegagalan sistem atau penghapusan cache browser.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/60">
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">File Cadangan Motor.ku</h4>
+            <p className="text-[10px] text-slate-400">
+              Total catatan: <span className="font-bold text-slate-700 dark:text-slate-300">{oilLogs.length} Ganti Oli</span> dan <span className="font-bold text-slate-700 dark:text-slate-300">{fuelLogs.length} BBM</span>
+            </p>
+          </div>
+          <button
+            id="btn-download-backup"
+            type="button"
+            onClick={handleDownloadBackup}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center gap-2 shadow-xs self-stretch sm:self-auto justify-center"
+          >
+            <Download className="w-4 h-4" /> Download Cadangan (JSON)
+          </button>
+        </div>
       </div>
 
       {/* 3. Supabase Cloud Sync Configuration */}
