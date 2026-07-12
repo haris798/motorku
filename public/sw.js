@@ -1,8 +1,9 @@
-const CACHE_NAME = 'motorku-cache-v1';
+const CACHE_NAME = 'motorku-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/pwa_icon_192.jpg',
   '/pwa_icon.jpg',
   '/pwa_icon_maskable.jpg',
   '/screenshot_mobile.jpg',
