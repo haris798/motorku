@@ -271,7 +271,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                     Tanggal Pembelian
                   </label>
                   <input
@@ -285,7 +285,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                     Biaya Pembelian (Rp)
                   </label>
                   <input
@@ -383,19 +383,19 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
                 {/* Core metrics summary */}
                 <div className="grid grid-cols-3 gap-2 mt-4 py-3 border-y border-slate-50 dark:border-slate-800/40 text-center">
                   <div>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Volume</span>
+                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Volume</span>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1 block">
                       {log.liters.toLocaleString('id-ID')} L
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Odometer</span>
+                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Odometer</span>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1 block">
                       {log.mileage.toLocaleString('id-ID')} km
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Biaya</span>
+                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Total Biaya</span>
                     <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 block">
                       {formatIDR(log.cost)}
                     </span>

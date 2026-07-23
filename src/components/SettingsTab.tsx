@@ -218,7 +218,7 @@ export default function SettingsTab({
 
         <form onSubmit={handleSaveIntervals} className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1.5">
               Interval Berdasarkan Jarak (Kilometer)
             </label>
             <div className="relative">
@@ -239,7 +239,7 @@ export default function SettingsTab({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1.5">
               Interval Berdasarkan Waktu (Hari)
             </label>
             <div className="relative">
@@ -260,7 +260,7 @@ export default function SettingsTab({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1.5">
               Harga BBM per Liter (Pertalite)
             </label>
             <div className="relative">
@@ -402,7 +402,7 @@ export default function SettingsTab({
         <div className="space-y-4 pt-4 border-t border-slate-50 dark:border-slate-800">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                 Supabase Project URL
               </label>
               <input
@@ -416,7 +416,7 @@ export default function SettingsTab({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                 Supabase Anon / Public API Key
               </label>
               <div className="relative">
@@ -541,7 +541,7 @@ export default function SettingsTab({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                 Telegram Bot Token
               </label>
               <div className="relative">
@@ -568,7 +568,7 @@ export default function SettingsTab({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                 Telegram Chat ID Pengguna
               </label>
               <input
@@ -586,7 +586,7 @@ export default function SettingsTab({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                 Kirim Peringatan Hari Sebelum Ganti Oli
               </label>
               <div className="relative">
@@ -599,14 +599,14 @@ export default function SettingsTab({
                   disabled={!tgEnabled}
                   className="w-full py-2.5 pl-3 pr-12 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50 font-bold"
                 />
-                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[10px] font-bold text-slate-400 pointer-events-none uppercase">
+                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[10px] font-bold text-slate-400 pointer-events-none capitalize">
                   Hari
                 </span>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                 Kirim Peringatan Jarak Sebelum Ganti Oli (km)
               </label>
               <div className="relative">
@@ -619,7 +619,7 @@ export default function SettingsTab({
                   disabled={!tgEnabled}
                   className="w-full py-2.5 pl-3 pr-12 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50 font-bold"
                 />
-                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[10px] font-bold text-slate-400 pointer-events-none uppercase">
+                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[10px] font-bold text-slate-400 pointer-events-none capitalize">
                   KM
                 </span>
               </div>

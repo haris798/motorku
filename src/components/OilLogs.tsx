@@ -213,7 +213,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                     Tanggal Ganti
                   </label>
                   <input
@@ -227,7 +227,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
                     Biaya Ganti Oli (Rp)
                   </label>
                   <input
@@ -321,19 +321,19 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
                 {/* Star rating and costs */}
                 <div className="grid grid-cols-3 gap-2 mt-4 py-3 border-y border-slate-50 dark:border-slate-800/40 text-center">
                   <div>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Odometer</span>
+                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Odometer</span>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1 block">
                       {log.mileage.toLocaleString('id-ID')} km
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Biaya Oli</span>
+                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Biaya Oli</span>
                     <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-1 block">
                       {formatIDR(log.cost)}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Performa</span>
+                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Performa</span>
                     <span className="flex items-center justify-center gap-0.5 text-amber-500 font-bold text-xs mt-1">
                       {log.rating || 5} <Star className="w-3.5 h-3.5 fill-amber-400 stroke-amber-400" />
                     </span>

@@ -165,7 +165,7 @@ export function exportToPDF(oilLogs: OilLog[], fuelLogs: FuelLog[]) {
         .stat-label {
           font-size: 11px;
           color: #64748b;
-          text-transform: uppercase;
+          text-transform: capitalize;
           font-weight: 600;
           margin-bottom: 4px;
         }
@@ -198,7 +198,7 @@ export function exportToPDF(oilLogs: OilLog[], fuelLogs: FuelLog[]) {
           text-align: left;
           padding: 8px 12px;
           font-size: 11px;
-          text-transform: uppercase;
+          text-transform: capitalize;
           border-bottom: 2px solid #cbd5e1;
         }
         td {

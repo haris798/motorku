@@ -450,7 +450,7 @@ export default function App() {
         <div className="p-4 border-t border-slate-150 dark:border-slate-800">
           <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-150 dark:border-slate-800">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Cloud Sync</span>
+              <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 capitalize tracking-wider">Cloud Sync</span>
               <div 
                 className={`w-2.5 h-2.5 rounded-full animate-pulse ${
                   !isOnline 
@@ -509,9 +509,9 @@ export default function App() {
               </span>
               <div>
                 <h1 className="text-xs font-black tracking-tight text-slate-900 dark:text-white font-display leading-none">
-                  Motor .ku Tracker
+                  Motor.ku Tracker
                 </h1>
-                <span className="text-[9px] text-slate-400 dark:text-slate-500">Jurnal Servis & BBM</span>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500">Jurnal BBM</span>
               </div>
             </div>
 
@@ -732,15 +732,7 @@ export default function App() {
         </main>
 
         {/* 4. Geometric Footer / Bottom Bar */}
-        <footer className="h-12 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-6 sm:px-8 bg-white/20 dark:bg-slate-900/30 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono font-semibold shrink-0 select-none">
-          <div className="flex items-center gap-6">
-            <span>DATABASE: SUPABASE SQL v2.4</span>
-            <span className="hidden sm:inline">OFFLINE SYNC: READY</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-emerald-500">● LATENCY: 42MS</span>
-            <span className="hidden sm:inline">LAST EXPORT: TODAY</span>
-          </div>
+        <footer className="h-12 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-6 sm:px-8 bg-white/20 dark:bg-slate-900/30 text-[10px] text-slate-400 dark:text-slate-500 capitalize tracking-widest font-mono font-semibold shrink-0 select-none">
         </footer>
       </div>
 

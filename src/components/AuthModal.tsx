@@ -118,7 +118,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, supabaseConf
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                 Alamat Email
               </label>
               <div className="relative">
@@ -139,7 +139,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, supabaseConf
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                 Kata Sandi
               </label>
               <div className="relative">

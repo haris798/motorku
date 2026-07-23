@@ -141,14 +141,11 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         <div className="absolute left-1/3 bottom-0 translate-y-8 w-48 h-48 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
         
         <div className="z-10">
-          <span className="px-2.5 py-1 text-xs font-semibold tracking-wider uppercase bg-white/10 dark:bg-slate-700/50 rounded-full backdrop-blur-xs">
-            {lastOilLog ? 'Sistem Aktif & Terpantau' : 'Mulai Pencatatan'}
-          </span>
-          <h1 className="text-2xl md:text-3xl font-extrabold mt-2 tracking-tight">
-            Monitor Performa Motor Anda
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+            Monitor Performa Motor
           </h1>
           <p className="text-indigo-100 dark:text-slate-300 text-xs md:text-sm mt-1 max-w-md">
-            Pantau masa pakai oli, hitung efisiensi bahan bakar secara akurat, dan dapatkan notifikasi otomatis.
+            Pantau masa pakai oli, hitung efisiensi bahan bakar secara akurat.
           </p>
         </div>
 
@@ -300,7 +297,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
               </svg>
               <div className="absolute flex flex-col items-center">
                 <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{oilLifePercent}%</span>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Sisa Kualitas</span>
+                <span className="text-[10px] text-slate-400 capitalize tracking-wider font-semibold">Sisa Kualitas</span>
               </div>
             </div>
           </div>
