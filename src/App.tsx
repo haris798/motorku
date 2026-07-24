@@ -515,7 +515,7 @@ export default function App() {
       <div className="flex-1 flex flex-col h-screen overflow-y-auto min-w-0">
 
         {/* Mobile Header (md and smaller) */}
-        <header className="sticky top-0 z-45 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 transition-colors md:hidden shrink-0">
+        <header className="sticky top-0 z-45 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 transition-colors md:hidden shrink-0 pt-[env(safe-area-inset-top)]">
           <div className="px-4 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
               <span className="p-2 bg-indigo-600 rounded-xl text-white shadow-md">

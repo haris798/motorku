@@ -36,3 +36,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+@utility pt-safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
