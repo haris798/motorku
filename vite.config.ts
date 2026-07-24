@@ -1,13 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
     plugins: [
-      react(), 
+      react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
@@ -15,7 +15,7 @@ export default defineConfig(() => {
         manifest: {
           name: 'Motor.ku Tracker',
           short_name: 'Motor.ku',
-          description: 'Aplikasi pencatatan bahan bakar dan perawatan motor',
+          description: 'Aplikasi pencatatan BBM dan Oli',
           theme_color: '#4f46e5',
           background_color: '#ffffff',
           display: 'standalone',

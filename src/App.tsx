@@ -7,7 +7,7 @@ import Dashboard from './components/Dashboard';
 import OilLogs from './components/OilLogs';
 import FuelLogs from './components/FuelLogs';
 import SettingsTab from './components/SettingsTab';
-import { 
+import {
   Gauge, Droplets, Fuel, Settings, Cloud, CloudOff, FileSpreadsheet, FileText, RefreshCw,
   Sun, Moon, LogOut
 } from 'lucide-react';
@@ -21,7 +21,7 @@ const generateUUID = (): string => {
       // Fallback
     }
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -53,7 +53,7 @@ export default function App() {
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [user, setUser] = useState<any>(null);
-  
+
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [darkMode, setDarkMode] = useState(false);
@@ -93,14 +93,14 @@ export default function App() {
     if (cachedOil) {
       try {
         setOilLogs(JSON.parse(cachedOil));
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const cachedFuel = localStorage.getItem('oil_tracker_fuel_logs');
     if (cachedFuel) {
       try {
         setFuelLogs(JSON.parse(cachedFuel));
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // C. Setup Theme
@@ -122,7 +122,7 @@ export default function App() {
           // Auto-login using saved credentials if available
           const savedEmail = localStorage.getItem('supabase_email');
           const savedPassword = localStorage.getItem('supabase_password');
-          
+
           if (savedEmail && savedPassword) {
             try {
               const { data: { user: signInUser }, error } = await client.auth.signInWithPassword({
@@ -223,7 +223,7 @@ export default function App() {
   const handleUpdateSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
     localStorage.setItem('oil_tracker_settings', JSON.stringify(newSettings));
-    
+
     // Also save credentials directly for client initialization helper
     if (newSettings.supabase.url && newSettings.supabase.anonKey) {
       localStorage.setItem('supabase_url', newSettings.supabase.url);
@@ -265,10 +265,10 @@ export default function App() {
         // Update local logs with merged data
         setOilLogs(result.syncedOilLogs);
         setFuelLogs(result.syncedFuelLogs);
-        
+
         localStorage.setItem('oil_tracker_oil_logs', JSON.stringify(result.syncedOilLogs));
         localStorage.setItem('oil_tracker_fuel_logs', JSON.stringify(result.syncedFuelLogs));
-        
+
         setSyncStatus({
           lastSyncedAt: new Date().toISOString(),
           pendingSyncCount: 0,
@@ -409,7 +409,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300 flex flex-col md:flex-row overflow-hidden pb-16 md:pb-0">
-      
+
       {/* 1. Desktop Sidebar (md and larger) */}
       <aside className="hidden md:flex w-64 border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col shrink-0 h-screen sticky top-0 justify-between select-none">
         <div className="flex flex-col flex-1 overflow-y-auto">
@@ -444,11 +444,10 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all flex items-center gap-3 cursor-pointer ${
-                    isActive
+                  className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all flex items-center gap-3 cursor-pointer ${isActive
                       ? 'bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-100/40 dark:border-indigo-900/20'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent'
-                  }`}
+                    }`}
                 >
                   <div className={`w-1 h-4 rounded-full ${isActive ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-transparent'}`} />
                   <IconComponent className="w-4 h-4" />
@@ -464,23 +463,22 @@ export default function App() {
           <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-150 dark:border-slate-800">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 capitalize tracking-wider">Cloud Sync</span>
-              <div 
-                className={`w-2.5 h-2.5 rounded-full animate-pulse ${
-                  !isOnline 
-                    ? 'bg-rose-500' 
-                    : syncStatus.pendingSyncCount > 0 
-                      ? 'bg-amber-500' 
+              <div
+                className={`w-2.5 h-2.5 rounded-full animate-pulse ${!isOnline
+                    ? 'bg-rose-500'
+                    : syncStatus.pendingSyncCount > 0
+                      ? 'bg-amber-500'
                       : 'bg-emerald-500'
-                }`} 
+                  }`}
                 title={!isOnline ? 'Offline' : syncStatus.pendingSyncCount > 0 ? 'Tertunda sinkronisasi' : 'Sinkron'}
               />
             </div>
-            
+
             <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate">
-              {!isOnline 
-                ? 'Koneksi Offline' 
-                : syncStatus.pendingSyncCount > 0 
-                  ? `${syncStatus.pendingSyncCount} data belum disinkron` 
+              {!isOnline
+                ? 'Koneksi Offline'
+                : syncStatus.pendingSyncCount > 0
+                  ? `${syncStatus.pendingSyncCount} data belum disinkron`
                   : 'Data Terbaca Sinkron'}
             </p>
 
@@ -496,14 +494,13 @@ export default function App() {
             )}
 
             <div className="mt-2.5 w-full bg-slate-200 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-550 ${
-                  !isOnline 
-                    ? 'bg-rose-500 w-1/3' 
-                    : syncStatus.pendingSyncCount > 0 
-                      ? 'bg-amber-500 w-2/3' 
+              <div
+                className={`h-full transition-all duration-550 ${!isOnline
+                    ? 'bg-rose-500 w-1/3'
+                    : syncStatus.pendingSyncCount > 0
+                      ? 'bg-amber-500 w-2/3'
                       : 'bg-emerald-500 w-full'
-                }`} 
+                  }`}
               />
             </div>
           </div>
@@ -512,7 +509,7 @@ export default function App() {
 
       {/* 2. Main Area Panel */}
       <div className="flex-1 flex flex-col h-screen overflow-y-auto min-w-0">
-        
+
         {/* Mobile Header (md and smaller) */}
         <header className="sticky top-0 z-45 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 transition-colors md:hidden shrink-0">
           <div className="px-4 h-16 flex items-center justify-between gap-4">
@@ -551,23 +548,20 @@ export default function App() {
                 onClick={() => setActiveTab(tab.id)}
                 className="flex-1 flex flex-col items-center justify-center h-full relative cursor-pointer group transition-all"
               >
-                <div className={`absolute inset-y-1.5 inset-x-2 rounded-2xl transition-all duration-300 -z-10 ${
-                  isActive 
-                    ? 'bg-indigo-50/60 dark:bg-indigo-950/20' 
+                <div className={`absolute inset-y-1.5 inset-x-2 rounded-2xl transition-all duration-300 -z-10 ${isActive
+                    ? 'bg-indigo-50/60 dark:bg-indigo-950/20'
                     : 'bg-transparent group-hover:bg-slate-50 dark:group-hover:bg-slate-800/10'
-                }`} />
-                
-                <IconComponent className={`w-5 h-5 transition-all duration-300 ${
-                  isActive 
-                    ? 'text-indigo-600 dark:text-indigo-400 scale-110' 
+                  }`} />
+
+                <IconComponent className={`w-5 h-5 transition-all duration-300 ${isActive
+                    ? 'text-indigo-600 dark:text-indigo-400 scale-110'
                     : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400'
-                }`} />
-                
-                <span className={`text-[9px] mt-1 font-bold tracking-wide transition-all duration-300 ${
-                  isActive 
-                    ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
+                  }`} />
+
+                <span className={`text-[9px] mt-1 font-bold tracking-wide transition-all duration-300 ${isActive
+                    ? 'text-indigo-600 dark:text-indigo-400 font-extrabold'
                     : 'text-slate-400 dark:text-slate-500'
-                }`}>
+                  }`}>
                   {tab.label}
                 </span>
 
@@ -586,7 +580,7 @@ export default function App() {
               {activeTab === 'dashboard' && 'Overview Performa'}
               {activeTab === 'oil' && 'Riwayat Servis & Ganti Oli'}
               {activeTab === 'fuel' && 'Pencatatan BBM & Efisiensi'}
-              {activeTab === 'settings' && 'Pengaturan & Panduan SQL'}
+              {activeTab === 'settings' && 'Pengaturan'}
             </h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
               {user ? `Terhubung: ${user.email}` : 'Mode Penyimpanan Lokal Aktif (Offline Ready)'}
@@ -595,12 +589,11 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             {/* Online Badge */}
-            <span 
-              className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl ${
-                isOnline 
-                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100/60 dark:border-emerald-900/30' 
+            <span
+              className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl ${isOnline
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100/60 dark:border-emerald-900/30'
                   : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-100/60 dark:border-rose-900/30'
-              }`}
+                }`}
             >
               {isOnline ? <Cloud className="w-3.5 h-3.5" /> : <CloudOff className="w-3.5 h-3.5" />}
               <span>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
@@ -619,7 +612,7 @@ export default function App() {
                 onClick={() => setActiveTab('settings')}
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all"
               >
-                <Cloud className="w-4 h-4" /> 
+                <Cloud className="w-4 h-4" />
                 <span>Hubungkan Cloud</span>
               </button>
             )}
@@ -658,7 +651,7 @@ export default function App() {
         {/* Sync Progress Indicator Banner */}
         {syncProgressMsg && (
           <div className="w-full bg-indigo-600 text-white text-center py-2 text-xs font-bold animate-pulse flex items-center justify-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin" /> 
+            <RefreshCw className="w-4 h-4 animate-spin" />
             <span>{syncProgressMsg}</span>
           </div>
         )}

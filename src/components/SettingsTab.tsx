@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { AppSettings, SyncStatus, OilLog, FuelLog } from '../types';
 import { testSupabaseConnection, SUPABASE_SQL_SCRIPT, getSupabaseClient } from '../lib/supabaseClient';
 import { sendTelegramNotification } from '../utils/telegram';
-import { 
-  Settings, Database, Send, Calendar, Milestone, Moon, Sun, Eye, EyeOff, 
+import {
+  Settings, Database, Send, Calendar, Milestone, Moon, Sun, Eye, EyeOff,
   Clipboard, Check, ShieldCheck, HelpCircle, LogIn, LogOut, RefreshCw, AlertTriangle,
   Download
 } from 'lucide-react';
@@ -84,7 +84,7 @@ export default function SettingsTab({
 
     if (result.success) {
       setDbMessage({ type: 'success', text: result.message });
-      
+
       // Update global settings
       onUpdateSettings({
         ...settings,
@@ -191,12 +191,12 @@ export default function SettingsTab({
       const url = URL.createObjectURL(blob);
       const downloadAnchor = document.createElement('a');
       downloadAnchor.href = url;
-      
+
       const dateStr = new Date().toISOString().split('T')[0];
       downloadAnchor.download = `motorku_backup_${dateStr}.json`;
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
-      
+
       // Cleanup
       document.body.removeChild(downloadAnchor);
       URL.revokeObjectURL(url);
@@ -325,11 +325,10 @@ export default function SettingsTab({
           <span className="flex items-center gap-2">
             <Database className="w-5 h-5 text-indigo-500" /> Sinkronisasi Database Supabase (Real-Time)
           </span>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-            settings.supabase.connected 
-              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' 
-              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'
-          }`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${settings.supabase.connected
+            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400'
+            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'
+            }`}>
             {settings.supabase.connected ? 'Terhubung ke Cloud' : 'Mode Offline / Lokal'}
           </span>
         </h3>
@@ -453,11 +452,10 @@ export default function SettingsTab({
           </div>
 
           {dbMessage && (
-            <div className={`p-3 rounded-xl text-xs flex gap-2 border ${
-              dbMessage.type === 'success' 
-                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-150 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300' 
-                : 'bg-rose-50 dark:bg-rose-950/30 border-rose-150 dark:border-rose-900/40 text-rose-800 dark:text-rose-300'
-            }`}>
+            <div className={`p-3 rounded-xl text-xs flex gap-2 border ${dbMessage.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-150 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300'
+              : 'bg-rose-50 dark:bg-rose-950/30 border-rose-150 dark:border-rose-900/40 text-rose-800 dark:text-rose-300'
+              }`}>
               <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{dbMessage.text}</span>
             </div>
@@ -484,199 +482,157 @@ export default function SettingsTab({
           </div>
         </div>
 
-        {/* Collapsible Supabase SQL Script presentation */}
-        <div className="pt-4 border-t border-slate-50 dark:border-slate-800">
-          <div className="p-4 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/15 border border-indigo-100 dark:border-indigo-900/30">
-            <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-400 flex items-center gap-1.5">
-              <HelpCircle className="w-4 h-4" /> Cara Menghubungkan Supabase Anda
-            </h4>
-            <ol className="list-decimal list-inside text-[11px] text-slate-500 dark:text-slate-400 mt-2 space-y-1.5 leading-relaxed">
-              <li>Buat akun atau buat project baru di <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-semibold">Supabase</a>.</li>
-              <li>Buka <b>Project Settings {`>`} API</b> di Supabase, lalu salin <b>Project URL</b> dan <b>anon (public) API Key</b> ke input di atas.</li>
-              <li>Klik tombol <b>Simpan & Hubungkan Database</b>.</li>
-              <li>Buka menu <b>SQL Editor</b> di panel sebelah kiri dashboard Supabase Anda, buat query baru, lalu salin (copy) script SQL di bawah ini dan klik <b>RUN</b> untuk membuat tabel secara otomatis!</li>
-            </ol>
 
-            {/* SQL Script View Box */}
-            <div className="mt-4 border border-slate-150 dark:border-slate-850 rounded-xl overflow-hidden bg-slate-950">
-              <div className="flex justify-between items-center px-4 py-2 bg-slate-900 border-b border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 font-mono">SUPABASE_SCHEMA.sql</span>
+        {/* 4. Telegram Alert Configurations */}
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2 border-b border-slate-50 dark:border-slate-800 pb-3">
+            <Send className="w-5 h-5 text-indigo-500" /> Notifikasi (Telegram Bot API)
+          </h3>
+
+          <form onSubmit={handleSaveTelegram} className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Aktifkan Pengingat Telegram
+                </label>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  id="toggle-telegram"
+                  type="checkbox"
+                  checked={tgEnabled}
+                  onChange={(e) => setTgEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
+                  Telegram Bot Token
+                </label>
+                <div className="relative">
+                  <input
+                    id="input-telegram-token"
+                    type={showTgToken ? 'text' : 'password'}
+                    required={tgEnabled}
+                    placeholder="1234567890:ABCdefGhIJKlmNoPQRsT..."
+                    value={tgToken}
+                    onChange={(e) => setTgToken(e.target.value)}
+                    disabled={!tgEnabled}
+                    className="w-full py-2.5 pl-3 pr-10 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50"
+                  />
+                  <button
+                    id="toggle-telegram-token-visibility"
+                    type="button"
+                    onClick={() => setShowTgToken(!showTgToken)}
+                    disabled={!tgEnabled}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 disabled:opacity-50"
+                  >
+                    {showTgToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
+                  Telegram Chat ID Pengguna
+                </label>
+                <input
+                  id="input-telegram-chatid"
+                  type="text"
+                  required={tgEnabled}
+                  placeholder="Contoh: 987654321"
+                  value={tgChatId}
+                  onChange={(e) => setTgChatId(e.target.value)}
+                  disabled={!tgEnabled}
+                  className="w-full py-2.5 px-3 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
+                  Kirim Peringatan Hari Sebelum Ganti Oli
+                </label>
+                <div className="relative">
+                  <input
+                    id="input-telegram-days-before"
+                    type="number"
+                    required={tgEnabled}
+                    value={tgDays}
+                    onChange={(e) => setTgDays(Number(e.target.value))}
+                    disabled={!tgEnabled}
+                    className="w-full py-2.5 pl-3 pr-12 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50 font-bold"
+                  />
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[10px] font-bold text-slate-400 pointer-events-none capitalize">
+                    Hari
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
+                  Kirim Peringatan Jarak Sebelum Ganti Oli (km)
+                </label>
+                <div className="relative">
+                  <input
+                    id="input-telegram-km-before"
+                    type="number"
+                    required={tgEnabled}
+                    value={tgKm}
+                    onChange={(e) => setTgKm(Number(e.target.value))}
+                    disabled={!tgEnabled}
+                    className="w-full py-2.5 pl-3 pr-12 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50 font-bold"
+                  />
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[10px] font-bold text-slate-400 pointer-events-none capitalize">
+                    KM
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {tgMessage && (
+              <div className={`p-3 rounded-xl text-xs flex gap-2 border ${tgMessage.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-150 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300'
+                : 'bg-rose-50 dark:bg-rose-950/30 border-rose-150 dark:border-rose-900/40 text-rose-800 dark:text-rose-300'
+                }`}>
+                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{tgMessage.text}</span>
+              </div>
+            )}
+
+            <div className="flex flex-col md:flex-row justify-between gap-3 pt-3 border-t border-slate-50 dark:border-slate-850">
+              {/* Instruction tooltip */}
+              <div className="text-[10px] text-slate-400 max-w-md flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-100 dark:border-slate-850">
+                <HelpCircle className="w-4 h-4 text-indigo-500 shrink-0" />
+                <span>Cari <b>@BotFather</b> di Telegram untuk membuat bot Anda. Dapatkan Token, lalu kirim pesan apa saja ke <b>@userinfobot</b> untuk mengetahui Chat ID Anda.</span>
+              </div>
+
+              <div className="flex gap-2 self-end">
                 <button
-                  id="btn-copy-sql"
-                  onClick={handleCopySql}
-                  className="px-2.5 py-1 text-[10px] bg-slate-800 text-slate-300 font-bold rounded-md hover:bg-slate-700 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                  id="btn-test-telegram"
+                  type="button"
+                  onClick={handleTestTelegram}
+                  disabled={tgTesting || !tgEnabled}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {copiedSql ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-500" /> Tersalin!
-                    </>
-                  ) : (
-                    <>
-                      <Clipboard className="w-3 h-3" /> Salin SQL Script
-                    </>
-                  )}
+                  {tgTesting ? 'Mengirim Uji Coba...' : 'Tes Notifikasi'}
+                </button>
+                <button
+                  id="btn-save-telegram"
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  Simpan Config
                 </button>
               </div>
-              <pre className="p-3 text-[10px] font-mono text-emerald-400/90 overflow-x-auto max-h-48 leading-relaxed whitespace-pre">
-                {SUPABASE_SQL_SCRIPT}
-              </pre>
             </div>
-          </div>
+          </form>
         </div>
       </div>
-
-      {/* 4. Telegram Alert Configurations */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
-        <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2 border-b border-slate-50 dark:border-slate-800 pb-3">
-          <Send className="w-5 h-5 text-indigo-500" /> Notifikasi Otomatis Pengingat (Telegram Bot API)
-        </h3>
-
-        <form onSubmit={handleSaveTelegram} className="space-y-4">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                Aktifkan Pengingat Telegram
-              </label>
-              <span className="text-[10px] text-slate-400">Kirim notifikasi otomatis saat oli mendekati ambang batas kilometer atau hari ganti.</span>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                id="toggle-telegram"
-                type="checkbox"
-                checked={tgEnabled}
-                onChange={(e) => setTgEnabled(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
-                Telegram Bot Token
-              </label>
-              <div className="relative">
-                <input
-                  id="input-telegram-token"
-                  type={showTgToken ? 'text' : 'password'}
-                  required={tgEnabled}
-                  placeholder="1234567890:ABCdefGhIJKlmNoPQRsT..."
-                  value={tgToken}
-                  onChange={(e) => setTgToken(e.target.value)}
-                  disabled={!tgEnabled}
-                  className="w-full py-2.5 pl-3 pr-10 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50"
-                />
-                <button
-                  id="toggle-telegram-token-visibility"
-                  type="button"
-                  onClick={() => setShowTgToken(!showTgToken)}
-                  disabled={!tgEnabled}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 disabled:opacity-50"
-                >
-                  {showTgToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
-                Telegram Chat ID Pengguna
-              </label>
-              <input
-                id="input-telegram-chatid"
-                type="text"
-                required={tgEnabled}
-                placeholder="Contoh: 987654321"
-                value={tgChatId}
-                onChange={(e) => setTgChatId(e.target.value)}
-                disabled={!tgEnabled}
-                className="w-full py-2.5 px-3 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
-                Kirim Peringatan Hari Sebelum Ganti Oli
-              </label>
-              <div className="relative">
-                <input
-                  id="input-telegram-days-before"
-                  type="number"
-                  required={tgEnabled}
-                  value={tgDays}
-                  onChange={(e) => setTgDays(Number(e.target.value))}
-                  disabled={!tgEnabled}
-                  className="w-full py-2.5 pl-3 pr-12 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50 font-bold"
-                />
-                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[10px] font-bold text-slate-400 pointer-events-none capitalize">
-                  Hari
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
-                Kirim Peringatan Jarak Sebelum Ganti Oli (km)
-              </label>
-              <div className="relative">
-                <input
-                  id="input-telegram-km-before"
-                  type="number"
-                  required={tgEnabled}
-                  value={tgKm}
-                  onChange={(e) => setTgKm(Number(e.target.value))}
-                  disabled={!tgEnabled}
-                  className="w-full py-2.5 pl-3 pr-12 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs disabled:opacity-50 font-bold"
-                />
-                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[10px] font-bold text-slate-400 pointer-events-none capitalize">
-                  KM
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {tgMessage && (
-            <div className={`p-3 rounded-xl text-xs flex gap-2 border ${
-              tgMessage.type === 'success' 
-                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-150 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300' 
-                : 'bg-rose-50 dark:bg-rose-950/30 border-rose-150 dark:border-rose-900/40 text-rose-800 dark:text-rose-300'
-            }`}>
-              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{tgMessage.text}</span>
-            </div>
-          )}
-
-          <div className="flex flex-col md:flex-row justify-between gap-3 pt-3 border-t border-slate-50 dark:border-slate-850">
-            {/* Instruction tooltip */}
-            <div className="text-[10px] text-slate-400 max-w-md flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-100 dark:border-slate-850">
-              <HelpCircle className="w-4 h-4 text-indigo-500 shrink-0" />
-              <span>Cari <b>@BotFather</b> di Telegram untuk membuat bot Anda. Dapatkan Token, lalu kirim pesan apa saja ke <b>@userinfobot</b> untuk mengetahui Chat ID Anda.</span>
-            </div>
-
-            <div className="flex gap-2 self-end">
-              <button
-                id="btn-test-telegram"
-                type="button"
-                onClick={handleTestTelegram}
-                disabled={tgTesting || !tgEnabled}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs transition-all cursor-pointer disabled:opacity-50"
-              >
-                {tgTesting ? 'Mengirim Uji Coba...' : 'Kirim Notifikasi Uji Coba'}
-              </button>
-              <button
-                id="btn-save-telegram"
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
-              >
-                Simpan Telegram Config
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+      );
 }
