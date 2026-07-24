@@ -411,6 +411,13 @@ export default function App() {
     }
   };
 
+  // Auto sync when online and logged in (e.g. on initial load or after login)
+  useEffect(() => {
+    if (isOnline && user && settings.supabase.connected) {
+      handleTriggerSync();
+    }
+  }, [isOnline, user, settings.supabase.connected]);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300 flex flex-col md:flex-row overflow-hidden pb-16 md:pb-0">
 
@@ -424,10 +431,10 @@ export default function App() {
                 <Gauge className="w-5 h-5" />
               </span>
               <div>
-                <h1 className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white leading-none font-display">
+                <h1 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white leading-none font-display">
                   MOTO-LOG
                 </h1>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wide">Oil & Fuel Tracker</span>
+                <span className="text-[12px] text-slate-400 dark:text-slate-500 font-medium tracking-wide">Oil & Fuel Tracker</span>
               </div>
             </div>
             <button
@@ -448,7 +455,7 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all flex items-center gap-3 cursor-pointer ${isActive
+                  className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${isActive
                       ? 'bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-100/40 dark:border-indigo-900/20'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent'
                     }`}
@@ -466,7 +473,7 @@ export default function App() {
         <div className="p-4 border-t border-slate-150 dark:border-slate-800">
           <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-150 dark:border-slate-800">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 capitalize tracking-wider">Cloud Sync</span>
+              <span className="text-[12px] font-bold text-slate-450 dark:text-slate-500 capitalize tracking-wider">Cloud Sync</span>
               <div
                 className={`w-2.5 h-2.5 rounded-full animate-pulse ${!isOnline
                     ? 'bg-rose-500'
@@ -478,7 +485,7 @@ export default function App() {
               />
             </div>
 
-            <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate">
+            <p className="text-[13px] font-medium text-slate-600 dark:text-slate-300 truncate">
               {!isOnline
                 ? 'Koneksi Offline'
                 : syncStatus.pendingSyncCount > 0
@@ -490,7 +497,7 @@ export default function App() {
               <button
                 onClick={handleTriggerSync}
                 disabled={syncStatus.isSyncing || !isOnline}
-                className="mt-2.5 w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="mt-2.5 w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-lg text-[12px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 <RefreshCw className={`w-3 h-3 ${syncStatus.isSyncing ? 'animate-spin' : ''}`} />
                 <span>{syncStatus.isSyncing ? 'Sinkronisasi...' : 'Sinkron Sekarang'}</span>
@@ -522,10 +529,10 @@ export default function App() {
                 <Gauge className="w-4 h-4" />
               </span>
               <div>
-                <h1 className="text-xs font-black tracking-tight text-slate-900 dark:text-white font-display leading-none">
+                <h1 className="text-sm font-black tracking-tight text-slate-900 dark:text-white font-display leading-none">
                   Motor.ku Tracker
                 </h1>
-                <span className="text-[9px] text-slate-400 dark:text-slate-500">Jurnal BBM</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">Jurnal BBM</span>
               </div>
             </div>
 
@@ -562,7 +569,7 @@ export default function App() {
                     : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400'
                   }`} />
 
-                <span className={`text-[9px] mt-1 font-bold tracking-wide transition-all duration-300 ${isActive
+                <span className={`text-[11px] mt-1 font-bold tracking-wide transition-all duration-300 ${isActive
                     ? 'text-indigo-600 dark:text-indigo-400 font-extrabold'
                     : 'text-slate-400 dark:text-slate-500'
                   }`}>
@@ -580,13 +587,13 @@ export default function App() {
         {/* Desktop Header Row (md and larger) */}
         <header className="hidden md:flex h-20 border-b border-slate-150 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md items-center justify-between px-8 select-none shrink-0">
           <div className="flex flex-col">
-            <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white font-display">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white font-display">
               {activeTab === 'dashboard' && 'Overview Performa'}
               {activeTab === 'oil' && 'Riwayat Servis & Ganti Oli'}
               {activeTab === 'fuel' && 'Pencatatan BBM & Efisiensi'}
               {activeTab === 'settings' && 'Pengaturan'}
             </h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+            <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">
               {user ? `Terhubung: ${user.email}` : 'Mode Penyimpanan Lokal Aktif (Offline Ready)'}
             </p>
           </div>
@@ -594,7 +601,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             {/* Online Badge */}
             <span
-              className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl ${isOnline
+              className={`inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-xl ${isOnline
                   ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100/60 dark:border-emerald-900/30'
                   : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-100/60 dark:border-rose-900/30'
                 }`}
@@ -606,7 +613,7 @@ export default function App() {
             {/* Cloud trigger */}
             {user ? (
               <div className="flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                   Hi, <b className="text-slate-800 dark:text-slate-200">{user.email.split('@')[0]}</b>
                 </span>
               </div>
@@ -614,7 +621,7 @@ export default function App() {
               <button
                 id="btn-nav-cloud-connect"
                 onClick={() => setActiveTab('settings')}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-bold rounded-xl shadow-md cursor-pointer transition-all"
               >
                 <Cloud className="w-4 h-4" />
                 <span>Hubungkan Cloud</span>
@@ -654,7 +661,7 @@ export default function App() {
 
         {/* Sync Progress Indicator Banner */}
         {syncProgressMsg && (
-          <div className="w-full bg-indigo-600 text-white text-center py-2 text-xs font-bold animate-pulse flex items-center justify-center gap-2">
+          <div className="w-full bg-indigo-600 text-white text-center py-2 text-sm font-bold animate-pulse flex items-center justify-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin" />
             <span>{syncProgressMsg}</span>
           </div>
@@ -714,7 +721,7 @@ export default function App() {
         </main>
 
         {/* 4. Geometric Footer / Bottom Bar */}
-        <footer className="h-12 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-6 sm:px-8 bg-white/20 dark:bg-slate-900/30 text-[10px] text-slate-400 dark:text-slate-500 capitalize tracking-widest font-mono font-semibold shrink-0 select-none">
+        <footer className="h-12 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-6 sm:px-8 bg-white/20 dark:bg-slate-900/30 text-[12px] text-slate-400 dark:text-slate-500 capitalize tracking-widest font-mono font-semibold shrink-0 select-none">
         </footer>
       </div>
     </div>

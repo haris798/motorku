@@ -141,10 +141,10 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         <div className="absolute left-1/3 bottom-0 translate-y-8 w-48 h-48 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
         
         <div className="z-10">
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+          <h1 className="text-3xl md:text-3xl font-extrabold tracking-tight">
             Monitor Performa Motor
           </h1>
-          <p className="text-indigo-100 dark:text-slate-300 text-xs md:text-sm mt-1 max-w-md">
+          <p className="text-indigo-100 dark:text-slate-300 text-sm md:text-base mt-1 max-w-md">
             Pantau masa pakai oli, hitung efisiensi bahan bakar secara akurat.
           </p>
         </div>
@@ -153,14 +153,14 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
           <button
             id="dash-add-oil"
             onClick={() => onNavigate('oil')}
-            className="px-4 py-2 bg-white text-indigo-700 dark:bg-slate-900 dark:text-indigo-400 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-black/5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer active:scale-95"
+            className="px-4 py-2 bg-white text-indigo-700 dark:bg-slate-900 dark:text-indigo-400 font-bold rounded-xl text-sm flex items-center gap-1.5 shadow-md shadow-black/5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer active:scale-95"
           >
             <Droplets className="w-4 h-4" /> Catat Oli
           </button>
           <button
             id="dash-add-fuel"
             onClick={() => onNavigate('fuel')}
-            className="px-4 py-2 bg-indigo-500/30 text-white font-bold rounded-xl text-xs border border-white/20 hover:bg-indigo-500/50 transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+            className="px-4 py-2 bg-indigo-500/30 text-white font-bold rounded-xl text-sm border border-white/20 hover:bg-indigo-500/50 transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
           >
             <Fuel className="w-4 h-4" /> Beli BBM
           </button>
@@ -172,8 +172,8 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         <div className="p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/40 text-red-800 dark:text-red-300 flex items-start gap-3 shadow-xs animate-pulse">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-sm">Peringatan: Jadwal Ganti Oli Sudah Dekat!</p>
-            <p className="text-xs mt-1 leading-relaxed">
+            <p className="font-bold text-base">Peringatan: Jadwal Ganti Oli Sudah Dekat!</p>
+            <p className="text-sm mt-1 leading-relaxed">
               Oli motor Anda perlu segera diganti. 
               {remainingKm <= 0 ? ' Batas kilometer sudah terlampaui!' : ` Tersisa ${remainingKm.toLocaleString('id-ID')} km lagi.`}
               {remainingDays <= 0 ? ' Batas hari sudah terlampaui!' : ` Tersisa ${remainingDays} hari lagi.`}
@@ -184,8 +184,8 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/40 dark:bg-emerald-950/10 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400 flex items-start gap-3">
           <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-500" />
           <div>
-            <p className="font-semibold text-sm">Oli dalam Kondisi Baik</p>
-            <p className="text-xs mt-0.5">
+            <p className="font-semibold text-base">Oli dalam Kondisi Baik</p>
+            <p className="text-sm mt-0.5">
               Oli motor Anda masih aman untuk digunakan hingga {remainingKm.toLocaleString('id-ID')} km atau {remainingDays} hari ke depan.
             </p>
           </div>
@@ -194,8 +194,8 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         <div className="p-4 rounded-xl border border-amber-100 bg-amber-50/40 dark:bg-amber-950/10 dark:border-amber-900/30 text-amber-800 dark:text-amber-400 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
           <div>
-            <p className="font-semibold text-sm">Belum Ada Data Ganti Oli</p>
-            <p className="text-xs mt-0.5">
+            <p className="font-semibold text-base">Belum Ada Data Ganti Oli</p>
+            <p className="text-sm mt-0.5">
               Silakan tambahkan catatan ganti oli pertama Anda untuk mengaktifkan pelacakan kesehatan oli dan mengaktifkan notifikasi Telegram.
             </p>
           </div>
@@ -210,9 +210,9 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
             <Milestone className="w-6 h-6" />
           </div>
           <div>
-            <span className="block text-xs font-medium text-slate-400 dark:text-slate-500">Odometer Saat Ini</span>
-            <span className="text-xl font-bold text-slate-800 dark:text-white mt-1 block">
-              {currentMileage.toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-400">km</span>
+            <span className="block text-sm font-medium text-slate-400 dark:text-slate-500">Odometer Saat Ini</span>
+            <span className="text-2xl font-bold text-slate-800 dark:text-white mt-1 block">
+              {currentMileage.toLocaleString('id-ID')} <span className="text-sm font-normal text-slate-400">km</span>
             </span>
           </div>
         </div>
@@ -223,9 +223,9 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <span className="block text-xs font-medium text-slate-400 dark:text-slate-500">Rata-rata Konsumsi</span>
-            <span className="text-xl font-bold text-slate-800 dark:text-white mt-1 block">
-              {avgEfficiency > 0 ? avgEfficiency.toFixed(1) : '-'} <span className="text-xs font-normal text-slate-400">km/L</span>
+            <span className="block text-sm font-medium text-slate-400 dark:text-slate-500">Rata-rata Konsumsi</span>
+            <span className="text-2xl font-bold text-slate-800 dark:text-white mt-1 block">
+              {avgEfficiency > 0 ? avgEfficiency.toFixed(1) : '-'} <span className="text-sm font-normal text-slate-400">km/L</span>
             </span>
           </div>
         </div>
@@ -236,8 +236,8 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
             <Coins className="w-6 h-6" />
           </div>
           <div>
-            <span className="block text-xs font-medium text-slate-400 dark:text-slate-500">Total Pengeluaran</span>
-            <span className="text-lg font-bold text-slate-800 dark:text-white mt-1 block leading-tight">
+            <span className="block text-sm font-medium text-slate-400 dark:text-slate-500">Total Pengeluaran</span>
+            <span className="text-xl font-bold text-slate-800 dark:text-white mt-1 block leading-tight">
               {formatIDR(totalExpenses)}
             </span>
           </div>
@@ -249,8 +249,8 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
             <Activity className="w-6 h-6" />
           </div>
           <div>
-            <span className="block text-xs font-medium text-slate-400 dark:text-slate-500">Est. Biaya per km</span>
-            <span className="text-lg font-bold text-slate-800 dark:text-white mt-1 block leading-tight">
+            <span className="block text-sm font-medium text-slate-400 dark:text-slate-500">Est. Biaya per km</span>
+            <span className="text-xl font-bold text-slate-800 dark:text-white mt-1 block leading-tight">
               {costPerKm > 0 ? `${formatIDR(costPerKm)}/km` : '-'}
             </span>
           </div>
@@ -263,10 +263,10 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
                 <Gauge className="w-5 h-5 text-indigo-500" /> Status Sisa Masa Pakai Oli
               </span>
-              <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
+              <span className={`text-sm font-extrabold px-2 py-0.5 rounded-full ${
                 oilLifePercent > 40 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' :
                 oilLifePercent > 15 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400' :
                 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400'
@@ -297,12 +297,12 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
               </svg>
               <div className="absolute flex flex-col items-center">
                 <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{oilLifePercent}%</span>
-                <span className="text-[10px] text-slate-400 capitalize tracking-wider font-semibold">Sisa Kualitas</span>
+                <span className="text-[12px] text-slate-400 capitalize tracking-wider font-semibold">Sisa Kualitas</span>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4 pt-4 border-t border-slate-50 dark:border-slate-800/60 text-xs">
+          <div className="space-y-4 pt-4 border-t border-slate-50 dark:border-slate-800/60 text-sm">
             {/* Km track */}
             <div>
               <div className="flex justify-between font-medium text-slate-500 dark:text-slate-400 mb-1">
@@ -317,7 +317,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
                   style={{ width: `${oilLifeKmPercent}%` }}
                 />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">
+              <p className="text-[12px] text-slate-400 mt-1">
                 {lastOilLog ? `Sisa ${remainingKm.toLocaleString('id-ID')} km lagi sebelum ganti.` : 'Belum ada data ganti oli.'}
               </p>
             </div>
@@ -336,7 +336,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
                   style={{ width: `${oilLifeDaysPercent}%` }}
                 />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">
+              <p className="text-[12px] text-slate-400 mt-1">
                 {lastOilLog ? `Sisa ${remainingDays} hari lagi sebelum ganti.` : 'Belum ada data ganti oli.'}
               </p>
             </div>
@@ -346,12 +346,12 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         {/* Analytical Charts */}
         <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs lg:col-span-2 flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
               <CalendarClock className="w-5 h-5 text-indigo-500" /> Analitik Pengeluaran Bulanan (Rp)
             </h3>
-            <p className="text-xs text-slate-400 mb-4">Grafik 6 bulan terakhir: akumulasi pengeluaran BBM dan penggantian Oli.</p>
+            <p className="text-sm text-slate-400 mb-4">Grafik 6 bulan terakhir: akumulasi pengeluaran BBM dan penggantian Oli.</p>
           </div>
-          <div className="h-64 w-full text-xs">
+          <div className="h-64 w-full text-sm">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={sortedMonthlyData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" />
@@ -387,24 +387,24 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-emerald-500" /> Tren Efisiensi Konsumsi Bahan Bakar (km/L)
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Grafik perbandingan efisiensi BBM pada 10 pengisian terakhir.</p>
+              <p className="text-sm text-slate-400 mt-0.5">Grafik perbandingan efisiensi BBM pada 10 pengisian terakhir.</p>
             </div>
             {avgEfficiency > 0 ? (
-              <span className="text-xs bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/40 font-semibold self-start md:self-auto">
+              <span className="text-sm bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/40 font-semibold self-start md:self-auto">
                 Rerata Efisiensi: {avgEfficiency.toFixed(1)} km/L
               </span>
             ) : null}
           </div>
 
-          <div className="h-64 w-full text-xs">
+          <div className="h-64 w-full text-sm">
             {efficiencyTrendData.length === 0 ? (
               <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/10 p-8 text-center text-slate-400">
                 <Fuel className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" />
-                <p className="text-sm font-bold">Data Efisiensi BBM Belum Tersedia</p>
-                <p className="text-xs mt-1 max-w-xs">Efisiensi dihitung secara otomatis jika Anda mencatat minimal 2 pembelian BBM dengan odometer yang terus bertambah.</p>
+                <p className="text-base font-bold">Data Efisiensi BBM Belum Tersedia</p>
+                <p className="text-sm mt-1 max-w-xs">Efisiensi dihitung secara otomatis jika Anda mencatat minimal 2 pembelian BBM dengan odometer yang terus bertambah.</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">

@@ -122,15 +122,15 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
       {/* Top action block */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-xs">
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
             <Wrench className="w-5 h-5 text-indigo-500" /> Riwayat Ganti Oli Motor
           </h2>
-          <p className="text-xs text-slate-400 mt-1">Kelola dan pantau catatan pemeliharaan oli motor Anda.</p>
+          <p className="text-sm text-slate-400 mt-1">Kelola dan pantau catatan pemeliharaan oli motor Anda.</p>
         </div>
         <button
           id="btn-add-oil-log"
           onClick={handleOpenAdd}
-          className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs hover:bg-indigo-500 transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/10 active:scale-95 self-start md:self-auto"
+          className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-500 transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/10 active:scale-95 self-start md:self-auto"
         >
           <Plus className="w-4 h-4" /> Catat Ganti Oli
         </button>
@@ -149,18 +149,18 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari merek oli atau catatan..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 text-xs transition-all shadow-xs"
+            className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm transition-all shadow-xs"
           />
         </div>
 
         {/* Brand Filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-400">Merek:</span>
+          <span className="text-sm font-semibold text-slate-400">Merek:</span>
           <select
             id="oil-brand-filter"
             value={brandFilter}
             onChange={(e) => setBrandFilter(e.target.value)}
-            className="flex-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-white rounded-xl py-2 px-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/10 text-xs shadow-xs"
+            className="flex-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-white rounded-xl py-2 px-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/10 text-sm shadow-xs"
           >
             {uniqueBrands.map(brand => (
               <option key={brand} value={brand}>{brand}</option>
@@ -170,11 +170,11 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
 
         {/* Sorting order */}
         <div className="flex items-center gap-2 justify-end">
-          <span className="text-xs font-semibold text-slate-400">Urutkan:</span>
+          <span className="text-sm font-semibold text-slate-400">Urutkan:</span>
           <button
             id="oil-sort-toggle"
             onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-            className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-white rounded-xl py-2 px-3 text-xs shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer"
+            className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-white rounded-xl py-2 px-3 text-sm shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer"
           >
             <ArrowUpDown className="w-4 h-4 text-indigo-500" />
             Tanggal: {sortOrder === 'desc' ? 'Terbaru' : 'Terlama'}
@@ -190,7 +190,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
             className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden transform transition-all"
           >
             <div className="flex justify-between items-center px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-indigo-500" />
                 {editingId ? 'Edit Catatan Ganti Oli' : 'Tambah Catatan Ganti Oli'}
               </h3>
@@ -205,7 +205,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {formError && (
-                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 text-rose-800 dark:text-rose-300 text-xs flex gap-2">
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 text-rose-800 dark:text-rose-300 text-sm flex gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{formError}</span>
                 </div>
@@ -213,7 +213,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
+                  <label className="block text-sm font-semibold capitalize tracking-wider text-slate-400 mb-1">
                     Tanggal Ganti
                   </label>
                   <input
@@ -222,12 +222,12 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
                     required
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full py-2.5 px-3 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                    className="w-full py-2.5 px-3 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
+                  <label className="block text-sm font-semibold capitalize tracking-wider text-slate-400 mb-1">
                     Biaya Ganti Oli (Rp)
                   </label>
                   <input
@@ -237,7 +237,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
                     placeholder="Masukkan Rupiah"
                     value={cost}
                     onChange={(e) => setCost(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full py-2.5 px-3 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs font-semibold"
+                    className="w-full py-2.5 px-3 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-sm font-semibold"
                   />
                 </div>
               </div>
@@ -247,14 +247,14 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
                   id="btn-cancel-oil"
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs hover:opacity-80 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-sm hover:opacity-80 transition-all cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   id="btn-submit-oil"
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs hover:bg-indigo-500 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-500 transition-all cursor-pointer"
                 >
                   Simpan Catatan
                 </button>
@@ -268,8 +268,8 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
       {sortedLogs.length === 0 ? (
         <div className="text-center p-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-xs flex flex-col items-center justify-center text-slate-400">
           <Wrench className="w-12 h-12 text-slate-200 dark:text-slate-700 mb-3" />
-          <p className="font-bold text-sm">Belum Ada Riwayat Ganti Oli</p>
-          <p className="text-xs mt-1 max-w-xs">Silakan catat penggantian oli pertama Anda dengan menekan tombol di atas.</p>
+          <p className="font-bold text-base">Belum Ada Riwayat Ganti Oli</p>
+          <p className="text-sm mt-1 max-w-xs">Silakan catat penggantian oli pertama Anda dengan menekan tombol di atas.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -287,11 +287,11 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
                       <Calendar className="w-4 h-4" />
                     </span>
                     <div>
-                      <span className="text-xs font-semibold text-slate-400">
+                      <span className="text-sm font-semibold text-slate-400">
                         {new Date(log.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                       </span>
                       <h4 className="font-bold text-slate-800 dark:text-white mt-0.5">
-                        {log.oil_brand} <span className="text-xs font-normal text-slate-400">({log.oil_type})</span>
+                        {log.oil_brand} <span className="text-sm font-normal text-slate-400">({log.oil_type})</span>
                       </h4>
                     </div>
                   </div>
@@ -321,20 +321,20 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
                 {/* Star rating and costs */}
                 <div className="grid grid-cols-3 gap-2 mt-4 py-3 border-y border-slate-50 dark:border-slate-800/40 text-center">
                   <div>
-                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Odometer</span>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1 block">
+                    <span className="block text-[12px] font-semibold capitalize tracking-wider text-slate-400">Odometer</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1 block">
                       {log.mileage.toLocaleString('id-ID')} km
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Biaya Oli</span>
-                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-1 block">
+                    <span className="block text-[12px] font-semibold capitalize tracking-wider text-slate-400">Biaya Oli</span>
+                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-1 block">
                       {formatIDR(log.cost)}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] font-semibold capitalize tracking-wider text-slate-400">Performa</span>
-                    <span className="flex items-center justify-center gap-0.5 text-amber-500 font-bold text-xs mt-1">
+                    <span className="block text-[12px] font-semibold capitalize tracking-wider text-slate-400">Performa</span>
+                    <span className="flex items-center justify-center gap-0.5 text-amber-500 font-bold text-sm mt-1">
                       {log.rating || 5} <Star className="w-3.5 h-3.5 fill-amber-400 stroke-amber-400" />
                     </span>
                   </div>
@@ -343,7 +343,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
 
               {/* Notes */}
               {log.notes && (
-                <div className="mt-3 bg-slate-50/50 dark:bg-slate-950/30 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40 text-[11px] text-slate-500 italic">
+                <div className="mt-3 bg-slate-50/50 dark:bg-slate-950/30 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40 text-[13px] text-slate-500 italic">
                   &ldquo;{log.notes}&rdquo;
                 </div>
               )}
