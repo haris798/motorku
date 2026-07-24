@@ -458,7 +458,6 @@ export default function SettingsTab({
           </button>
         </div>
       </div>
-    </div>
 
       {/* 4. Telegram Alert Configurations */ }
   <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
