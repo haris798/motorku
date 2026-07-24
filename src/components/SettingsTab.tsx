@@ -627,7 +627,7 @@ export default function SettingsTab({
                   type="submit"
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
                 >
-                  Simpan Config
+                  Simpan
                 </button>
               </div>
             </div>

@@ -119,11 +119,14 @@ export async function syncWithSupabase(
 
     if (oilError) throw new Error(`Gagal fetch oli: ${oilError.message}`);
 
-    const mergedOilLogs: OilLog[] = [...localOilLogs];
-    const remoteOilMap = new Map<string, any>(remoteOilLogs.map(item => [item.id, item]));
+    const safeRemoteOilLogs = Array.isArray(remoteOilLogs) ? remoteOilLogs : [];
+    const safeLocalOilLogs = Array.isArray(localOilLogs) ? localOilLogs : [];
+
+    const mergedOilLogs: OilLog[] = [...safeLocalOilLogs];
+    const remoteOilMap = new Map<string, any>(safeRemoteOilLogs.map(item => [item.id, item]));
 
     // Check local vs remote
-    for (const local of localOilLogs) {
+    for (const local of safeLocalOilLogs) {
       const remote = remoteOilMap.get(local.id);
       if (!remote) {
         // Exists locally but not remotely -> Upload to remote
@@ -188,8 +191,8 @@ export async function syncWithSupabase(
     }
 
     // Add remote logs that are not present locally
-    for (const remote of remoteOilLogs) {
-      const localExists = localOilLogs.some(l => l.id === remote.id);
+    for (const remote of safeRemoteOilLogs) {
+      const localExists = safeLocalOilLogs.some(l => l.id === remote.id);
       if (!localExists) {
         mergedOilLogs.push({
           id: remote.id,
@@ -217,10 +220,13 @@ export async function syncWithSupabase(
 
     if (fuelError) throw new Error(`Gagal fetch BBM: ${fuelError.message}`);
 
-    const mergedFuelLogs: FuelLog[] = [...localFuelLogs];
-    const remoteFuelMap = new Map<string, any>(remoteFuelLogs.map(item => [item.id, item]));
+    const safeRemoteFuelLogs = Array.isArray(remoteFuelLogs) ? remoteFuelLogs : [];
+    const safeLocalFuelLogs = Array.isArray(localFuelLogs) ? localFuelLogs : [];
 
-    for (const local of localFuelLogs) {
+    const mergedFuelLogs: FuelLog[] = [...safeLocalFuelLogs];
+    const remoteFuelMap = new Map<string, any>(safeRemoteFuelLogs.map(item => [item.id, item]));
+
+    for (const local of safeLocalFuelLogs) {
       const remote = remoteFuelMap.get(local.id);
       if (!remote) {
         // Exists locally but not remotely -> Upload
@@ -285,8 +291,8 @@ export async function syncWithSupabase(
     }
 
     // Add remote fuel logs not present locally
-    for (const remote of remoteFuelLogs) {
-      const localExists = localFuelLogs.some(l => l.id === remote.id);
+    for (const remote of safeRemoteFuelLogs) {
+      const localExists = safeLocalFuelLogs.some(l => l.id === remote.id);
       if (!localExists) {
         mergedFuelLogs.push({
           id: remote.id,
