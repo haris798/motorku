@@ -55,7 +55,7 @@ export default function SettingsTab({
   // Local form state for Intervals
   const [intervalKm, setIntervalKm] = useState(settings.oilChangeIntervalKm);
   const [intervalDays, setIntervalDays] = useState(settings.oilChangeIntervalDays);
-  const [fuelPrice, setFuelPrice] = useState(settings.fuelPricePerLiter || 10000);
+  const [fuelPrice, setFuelPrice] = useState(settings.fuelPricePerLiter || 10);
 
   const [copiedSql, setCopiedSql] = useState(false);
 

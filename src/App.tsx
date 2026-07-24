@@ -31,7 +31,7 @@ const generateUUID = (): string => {
 const DEFAULT_SETTINGS: AppSettings = {
   oilChangeIntervalKm: 2000,
   oilChangeIntervalDays: 90,
-  fuelPricePerLiter: 10000,
+  fuelPricePerLiter: 10,
   telegram: {
     botToken: '',
     chatId: '',

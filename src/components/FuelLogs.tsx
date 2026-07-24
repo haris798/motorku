@@ -88,7 +88,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
     }
 
     // Auto-calculate liters based on settings parameter
-    const pricePerLiter = settings?.fuelPricePerLiter || 10000;
+    const pricePerLiter = (settings?.fuelPricePerLiter || 10) * 1000;
     const lNum = Number((cNum / pricePerLiter).toFixed(2));
 
     // Fallback mileage to the latest known odometer or 0
@@ -299,7 +299,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
                   />
                   {cost && Number(cost) > 0 && (
                     <p className="text-[10px] text-indigo-500 dark:text-indigo-400 mt-1.5 font-medium">
-                      Otomatis dikonversi menjadi <b>{(Number(cost) / (settings?.fuelPricePerLiter || 10000)).toFixed(2)} Liter</b> Pertalite (berdasarkan harga Rp {(settings?.fuelPricePerLiter || 10000).toLocaleString('id-ID')}/L di pengaturan).
+                      Otomatis dikonversi menjadi <b>{(Number(cost) / ((settings?.fuelPricePerLiter || 10) * 1000)).toFixed(2)} Liter</b> Pertalite (berdasarkan harga Rp {(settings?.fuelPricePerLiter || 10)} ribu/L di pengaturan).
                     </p>
                   )}
                 </div>
