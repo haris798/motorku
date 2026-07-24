@@ -115,9 +115,29 @@ export default function App() {
     // D. Fetch Supabase User Session if configured
     const client = getSupabaseClient();
     if (client) {
-      client.auth.getUser().then(({ data: { user: sbUser } }) => {
+      client.auth.getUser().then(async ({ data: { user: sbUser } }) => {
         if (sbUser) {
           setUser(sbUser);
+        } else {
+          // Auto-login using saved credentials if available
+          const savedEmail = localStorage.getItem('supabase_email');
+          const savedPassword = localStorage.getItem('supabase_password');
+          
+          if (savedEmail && savedPassword) {
+            try {
+              const { data: { user: signInUser }, error } = await client.auth.signInWithPassword({
+                email: savedEmail,
+                password: savedPassword,
+              });
+              if (signInUser && !error) {
+                setUser(signInUser);
+              } else {
+                console.warn('Auto-login gagal:', error?.message);
+              }
+            } catch (err) {
+              console.error('Auto-login exception:', err);
+            }
+          }
         }
       });
 
