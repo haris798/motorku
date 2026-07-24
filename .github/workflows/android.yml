@@ -38,6 +38,8 @@ jobs:
         run: npm install @capacitor/android@latest --save
 
       - name: Build Web Application
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
         run: npm run build
 
       - name: Setup Java
@@ -66,7 +68,8 @@ jobs:
 
       - name: Read App Name
         run: |
-          APP_NAME=$(node -e "const c=require('./capacitor.config.json'); console.log(c.appName)")
+          # Hardcode the app name since extracting from .ts is tricky without compiling
+          APP_NAME="Motorku"
           SAFE_NAME=$(echo "$APP_NAME" | sed 's/[^a-zA-Z0-9._-]/_/g')
           echo "APP_NAME=$SAFE_NAME" >> $GITHUB_ENV
 
