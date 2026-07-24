@@ -158,7 +158,11 @@ export default function App() {
 
   // Update pending sync count whenever logs change or deletions are queued
   useEffect(() => {
-    const deletedIds: string[] = JSON.parse(localStorage.getItem('deleted_log_ids') || '[]');
+    let deletedIds: string[] = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem('deleted_log_ids') || '[]');
+      if (Array.isArray(parsed)) deletedIds = parsed;
+    } catch (e) {}
     setSyncStatus(prev => ({
       ...prev,
       pendingSyncCount: deletedIds.length

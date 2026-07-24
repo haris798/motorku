@@ -98,7 +98,13 @@ export async function syncWithSupabase(
     onSyncProgress('Sinkronisasi dimulai...');
 
     // 1. Process deletions
-    const deletedIds: string[] = JSON.parse(localStorage.getItem('deleted_log_ids') || '[]');
+    let deletedIds: string[] = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem('deleted_log_ids') || '[]');
+      if (Array.isArray(parsed)) deletedIds = parsed;
+    } catch (e) {
+      // ignore
+    }
     if (deletedIds.length > 0) {
       onSyncProgress('Menghapus data yang didelete saat offline...');
       // Delete oil logs
