@@ -53,9 +53,8 @@ jobs:
 
       - name: Create Android Platform
         run: |
-          if [ ! -d android ]; then
-            npx cap add android
-          fi
+          rm -rf android
+          npx cap add android
 
       - name: Sync Capacitor
         run: npx cap sync android
