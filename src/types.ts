@@ -38,6 +38,8 @@ export interface TelegramConfig {
 export interface SupabaseConfig {
   url: string;
   anonKey: string;
+  email?: string;
+  password?: string;
   connected: boolean;
 }
 

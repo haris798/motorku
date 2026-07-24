@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppSettings, SyncStatus, OilLog, FuelLog } from '../types';
-import { testSupabaseConnection, SUPABASE_SQL_SCRIPT } from '../lib/supabaseClient';
+import { testSupabaseConnection, SUPABASE_SQL_SCRIPT, getSupabaseClient } from '../lib/supabaseClient';
 import { sendTelegramNotification } from '../utils/telegram';
 import { 
   Settings, Database, Send, Calendar, Milestone, Moon, Sun, Eye, EyeOff, 
@@ -18,8 +18,6 @@ interface SettingsTabProps {
   onTriggerSync: () => Promise<void>;
   onOpenAuth: () => void;
   onLogout: () => void;
-  darkMode: boolean;
-  onToggleDarkMode: () => void;
 }
 
 export default function SettingsTab({
@@ -31,9 +29,7 @@ export default function SettingsTab({
   onUpdateSettings,
   onTriggerSync,
   onOpenAuth,
-  onLogout,
-  darkMode,
-  onToggleDarkMode
+  onLogout
 }: SettingsTabProps) {
   // Local form state for Supabase
   const [supabaseUrl, setSupabaseUrl] = useState(settings.supabase.url);
@@ -41,6 +37,10 @@ export default function SettingsTab({
   const [showKey, setShowKey] = useState(false);
   const [dbConnecting, setDbConnecting] = useState(false);
   const [dbMessage, setDbMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Auth local state
+  const [authEmail, setAuthEmail] = useState(settings.supabase.email || '');
+  const [authPassword, setAuthPassword] = useState(settings.supabase.password || '');
 
   // Local form state for Telegram
   const [tgToken, setTgToken] = useState(settings.telegram.botToken);
@@ -81,7 +81,6 @@ export default function SettingsTab({
 
     setDbConnecting(true);
     const result = await testSupabaseConnection(supabaseUrl.trim(), supabaseKey.trim());
-    setDbConnecting(false);
 
     if (result.success) {
       setDbMessage({ type: 'success', text: result.message });
@@ -92,15 +91,41 @@ export default function SettingsTab({
         supabase: {
           url: supabaseUrl.trim(),
           anonKey: supabaseKey.trim(),
+          email: authEmail.trim(),
+          password: authPassword.trim(),
           connected: true
         }
       });
       // Save to localStorage immediately so Supabase client loads it
       localStorage.setItem('supabase_url', supabaseUrl.trim());
       localStorage.setItem('supabase_anon_key', supabaseKey.trim());
+      localStorage.setItem('supabase_email', authEmail.trim());
+      localStorage.setItem('supabase_password', authPassword.trim());
+
+      // Attempt login if email and password are provided
+      if (authEmail.trim() && authPassword.trim()) {
+        const client = getSupabaseClient();
+        if (client) {
+          try {
+            const { error: signInError } = await client.auth.signInWithPassword({
+              email: authEmail.trim(),
+              password: authPassword.trim(),
+            });
+            if (signInError) {
+              setDbMessage({ type: 'error', text: `Tersambung ke Supabase, tetapi gagal login: ${signInError.message}` });
+            } else {
+              setDbMessage({ type: 'success', text: 'Berhasil terhubung ke Supabase dan masuk akun!' });
+            }
+          } catch (err: any) {
+            console.error(err);
+            setDbMessage({ type: 'error', text: `Gagal login: ${err.message}` });
+          }
+        }
+      }
     } else {
       setDbMessage({ type: 'error', text: result.message });
     }
+    setDbConnecting(false);
   };
 
   // Handle Save Telegram Configurations
@@ -184,31 +209,6 @@ export default function SettingsTab({
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* 1. Header & General Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-xs">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <Settings className="w-5 h-5 text-indigo-500" /> Pengaturan Aplikasi
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">Konfigurasi database cloud, jadwal servis, notifikasi Telegram, dan preferensi tampilan.</p>
-        </div>
-
-        {/* Dark mode toggle */}
-        <button
-          id="btn-toggle-dark-mode"
-          onClick={onToggleDarkMode}
-          className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:opacity-90 rounded-xl text-xs flex items-center gap-2 font-bold cursor-pointer transition-all border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200"
-        >
-          {darkMode ? (
-            <>
-              <Sun className="w-4 h-4 text-amber-500 fill-amber-500" /> Mode Terang (Siang)
-            </>
-          ) : (
-            <>
-              <Moon className="w-4 h-4 text-indigo-500 fill-indigo-500" /> Mode Gelap (Malam)
-            </>
-          )}
-        </button>
-      </div>
 
       {/* 2. Oil Intervals Configurations (user limit setting) */}
       <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
@@ -347,26 +347,12 @@ export default function SettingsTab({
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[10px] text-slate-400">Sinkronisasi otomatis aktif</span>
                 </div>
-                <button
-                  id="btn-cloud-logout"
-                  onClick={onLogout}
-                  className="mt-2 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold rounded-lg text-xs flex items-center gap-1 cursor-pointer transition-all"
-                >
-                  <LogOut className="w-3.5 h-3.5" /> Keluar Akun (Log Out)
-                </button>
               </div>
             ) : (
               <div className="mt-2 space-y-2">
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Anda sedang dalam mode lokal. Hubungkan ke Supabase, lalu buat akun/login untuk menyimpan data Anda secara permanen di cloud.
+                <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                  Anda sedang dalam mode lokal. Hubungkan ke Supabase dengan memasukkan URL, API Key, Email, dan Password di bawah.
                 </p>
-                <button
-                  id="btn-cloud-login"
-                  onClick={onOpenAuth}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs flex items-center gap-1 cursor-pointer transition-all shadow-xs"
-                >
-                  <LogIn className="w-3.5 h-3.5" /> Hubungkan / Masuk Akun
-                </button>
               </div>
             )}
           </div>
@@ -400,44 +386,70 @@ export default function SettingsTab({
 
         {/* Credentials Inputs */}
         <div className="space-y-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
-                Supabase Project URL
-              </label>
-              <input
-                id="input-supabase-url"
-                type="text"
-                placeholder="https://your-project.supabase.co"
-                value={supabaseUrl}
-                onChange={(e) => setSupabaseUrl(e.target.value)}
-                className="w-full py-2.5 px-3 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs"
-              />
-            </div>
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+              Supabase Project URL
+            </label>
+            <input
+              id="input-supabase-url"
+              type="text"
+              placeholder="https://your-project.supabase.co"
+              value={supabaseUrl}
+              onChange={(e) => setSupabaseUrl(e.target.value)}
+              className="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0A0F1C] text-slate-900 dark:text-slate-300 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 text-xs font-mono placeholder:text-slate-300 dark:placeholder:text-slate-700 transition-all"
+            />
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold capitalize tracking-wider text-slate-400 mb-1">
-                Supabase Anon / Public API Key
-              </label>
-              <div className="relative">
-                <input
-                  id="input-supabase-key"
-                  type={showKey ? 'text' : 'password'}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  value={supabaseKey}
-                  onChange={(e) => setSupabaseKey(e.target.value)}
-                  className="w-full py-2.5 pl-3 pr-10 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 text-xs"
-                />
-                <button
-                  id="toggle-supabase-key-visibility"
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
-                >
-                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+              Supabase Anon / Public API Key
+            </label>
+            <div className="relative">
+              <input
+                id="input-supabase-key"
+                type={showKey ? 'text' : 'password'}
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                value={supabaseKey}
+                onChange={(e) => setSupabaseKey(e.target.value)}
+                className="w-full py-3 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0A0F1C] text-slate-900 dark:text-slate-300 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 text-xs font-mono placeholder:text-slate-300 dark:placeholder:text-slate-700 transition-all"
+              />
+              <button
+                id="toggle-supabase-key-visibility"
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+              Email Auth
+            </label>
+            <input
+              id="input-supabase-email"
+              type="email"
+              placeholder="haris443@gmail.com"
+              value={authEmail}
+              onChange={(e) => setAuthEmail(e.target.value)}
+              className="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0A0F1C] text-slate-900 dark:text-slate-300 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 text-xs font-mono placeholder:text-slate-300 dark:placeholder:text-slate-700 transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+              Password Auth
+            </label>
+            <input
+              id="input-supabase-password"
+              type="password"
+              placeholder="••••••••"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              className="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0A0F1C] text-slate-900 dark:text-slate-300 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 text-xs font-mono placeholder:text-slate-300 dark:placeholder:text-slate-700 transition-all"
+            />
           </div>
 
           {dbMessage && (

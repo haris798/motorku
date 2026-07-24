@@ -3,7 +3,6 @@ import { OilLog, FuelLog, AppSettings, SyncStatus } from './types';
 import { getSupabaseClient, syncWithSupabase } from './lib/supabaseClient';
 import { checkAndSendOilAlert } from './utils/telegram';
 import { exportToCSV, exportToPDF } from './utils/export';
-import AuthModal from './components/AuthModal';
 import Dashboard from './components/Dashboard';
 import OilLogs from './components/OilLogs';
 import FuelLogs from './components/FuelLogs';
@@ -56,7 +55,6 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -268,11 +266,6 @@ export default function App() {
       setSyncProgressMsg('');
       alert(`Gagal sinkronisasi: ${e.message || e}`);
     }
-  };
-
-  const handleAuthSuccess = (sbUser: any) => {
-    setUser(sbUser);
-    handleTriggerSync();
   };
 
   const handleLogout = async () => {
@@ -523,25 +516,6 @@ export default function App() {
               >
                 {darkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
               </button>
-
-              {user ? (
-                <button 
-                  onClick={handleLogout}
-                  title={`Keluar: ${user.email}`}
-                  className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all flex items-center gap-1 border border-emerald-100 dark:border-emerald-900/20"
-                >
-                  <Cloud className="w-4 h-4 text-emerald-500 animate-pulse" />
-                  <LogOut className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => setAuthModalOpen(true)}
-                  title="Hubungkan ke Cloud"
-                  className="p-2 bg-slate-50 dark:bg-slate-850 text-slate-400 hover:text-indigo-600 rounded-xl transition-all border border-slate-100 dark:border-slate-800/60"
-                >
-                  <CloudOff className="w-4 h-4 text-rose-400" />
-                </button>
-              )}
             </div>
           </div>
         </header>
@@ -618,18 +592,11 @@ export default function App() {
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Hi, <b className="text-slate-800 dark:text-slate-200">{user.email.split('@')[0]}</b>
                 </span>
-                <button
-                  onClick={handleLogout}
-                  title="Keluar Akun"
-                  className="p-1.5 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer text-slate-400 transition-all"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
               </div>
             ) : (
               <button
                 id="btn-nav-cloud-connect"
-                onClick={() => setAuthModalOpen(true)}
+                onClick={() => setActiveTab('settings')}
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all"
               >
                 <Cloud className="w-4 h-4" /> 
@@ -723,10 +690,8 @@ export default function App() {
               fuelLogs={fuelLogs}
               onUpdateSettings={handleUpdateSettings}
               onTriggerSync={handleTriggerSync}
-              onOpenAuth={() => setAuthModalOpen(true)}
+              onOpenAuth={() => setActiveTab('settings')}
               onLogout={handleLogout}
-              darkMode={darkMode}
-              onToggleDarkMode={handleToggleDarkMode}
             />
           )}
         </main>
@@ -735,14 +700,6 @@ export default function App() {
         <footer className="h-12 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-6 sm:px-8 bg-white/20 dark:bg-slate-900/30 text-[10px] text-slate-400 dark:text-slate-500 capitalize tracking-widest font-mono font-semibold shrink-0 select-none">
         </footer>
       </div>
-
-      {/* 5. Auth Modal Overlay */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        onAuthSuccess={handleAuthSuccess}
-        supabaseConfigured={settings.supabase.url !== '' && settings.supabase.anonKey !== ''}
-      />
     </div>
   );
 }
