@@ -356,6 +356,7 @@ export async function syncWithSupabase(
 
 /**
  * Fetch all GPS location data for a specific date from colota_locations.
+ * Filters by tst (Unix epoch in seconds) to get locations within the given date.
  */
 export async function fetchLocationsByDate(
   date: string
@@ -366,19 +367,17 @@ export async function fetchLocationsByDate(
   }
 
   try {
-    const { data: { user }, error: authError } = await client.auth.getUser();
-    if (authError || !user) {
-      return { locations: [], error: 'Silakan login terlebih dahulu.' };
-    }
+    // Convert date to Unix epoch range (seconds)
+    const startOfDay = new Date(`${date}T00:00:00Z`).getTime() / 1000;
+    const endOfDay = new Date(`${date}T23:59:59Z`).getTime() / 1000;
 
-    // Query locations recorded on the given date (using date cast)
+    // Query locations by tst (Unix epoch timestamp) - no user filter since table has no user column
     const { data, error } = await client
       .from('colota_locations')
       .select('*')
-      .eq('id', user.id)
-      .gte('recorded_at', `${date}T00:00:00Z`)
-      .lt('recorded_at', `${date}T23:59:59Z`)
-      .order('recorded_at', { ascending: true });
+      .gte('tst', startOfDay)
+      .lt('tst', endOfDay)
+      .order('tst', { ascending: true });
 
     if (error) {
       return { locations: [], error: `Gagal mengambil data lokasi: ${error.message}` };
@@ -393,6 +392,7 @@ export async function fetchLocationsByDate(
 /**
  * Calculate daily distance from colota_locations and save to jarak_tempuh.
  * Uses the Haversine formula via calculateTotalDistance().
+ * Maps colota field names (lat, lon, tst, vel) to the expected format.
  */
 export async function calculateAndSaveDailyDistance(
   date: string
@@ -422,10 +422,18 @@ export async function calculateAndSaveDailyDistance(
       };
     }
 
-    // 2. Calculate total distance using Haversine formula
-    const totalDistanceKm = calculateTotalDistance(locations);
+    // 2. Map ColotaLocation fields to the format expected by calculateTotalDistance
+    const mappedLocations = locations.map(loc => ({
+      latitude: loc.lat,
+      longitude: loc.lon,
+      recorded_at: new Date(loc.tst * 1000).toISOString(), // convert epoch seconds to ISO
+      speed: loc.vel,
+    }));
 
-    // 3. Save or update the result in jarak_tempuh
+    // 3. Calculate total distance using Haversine formula
+    const totalDistanceKm = calculateTotalDistance(mappedLocations);
+
+    // 4. Save or update the result in jarak_tempuh
     const { error: upsertError } = await client.from('jarak_tempuh').upsert({
       user_id: user.id,
       date,
@@ -537,27 +545,33 @@ CREATE TABLE IF NOT EXISTS user_settings (
 );
 
 -- ============================================================
--- 4. TABEL BARU: Data Lokasi GPS (colota_locations)
--- Menyimpan titik-titik koordinat dari perangkat pelacak
+-- 4. TABEL: Data Lokasi GPS (colota_locations)
+-- Format standar dari perangkat pelacak GPS (Colota / Traccar)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS colota_locations (
-  location_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  latitude DOUBLE PRECISION NOT NULL,
-  longitude DOUBLE PRECISION NOT NULL,
-  altitude DOUBLE PRECISION,
-  speed DOUBLE PRECISION,
-  accuracy DOUBLE PRECISION,
-  recorded_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+CREATE TABLE IF NOT EXISTS public.colota_locations (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  tid TEXT NULL DEFAULT 'default-device'::text,
+  lat DOUBLE PRECISION NOT NULL,
+  lon DOUBLE PRECISION NOT NULL,
+  acc DOUBLE PRECISION NULL DEFAULT 0,
+  alt DOUBLE PRECISION NULL DEFAULT 0,
+  vel DOUBLE PRECISION NULL DEFAULT 0,
+  bear DOUBLE PRECISION NULL DEFAULT 0,
+  batt INTEGER NULL DEFAULT 0,
+  bs INTEGER NULL DEFAULT 0,
+  tst BIGINT NOT NULL,
+  raw_payload JSONB NULL,
+  received_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  CONSTRAINT colota_locations_pkey PRIMARY KEY (id)
 );
 
--- Index untuk mempercepat query berdasarkan tanggal dan user
-CREATE INDEX IF NOT EXISTS idx_colota_locations_user_date
-  ON colota_locations (id, (recorded_at::date));
+-- Index untuk mempercepat query berdasarkan timestamp
+CREATE INDEX IF NOT EXISTS idx_colota_locations_tst
+  ON public.colota_locations (tst DESC);
 
-CREATE INDEX IF NOT EXISTS idx_colota_locations_recorded_at
-  ON colota_locations (recorded_at);
+CREATE INDEX IF NOT EXISTS idx_colota_locations_received_at
+  ON public.colota_locations (received_at);
 
 -- ============================================================
 -- 5. TABEL BARU: Jarak Tempuh Harian (jarak_tempuh)
@@ -584,7 +598,8 @@ CREATE INDEX IF NOT EXISTS idx_jarak_tempuh_user_date
 ALTER TABLE oil_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE colota_locations ENABLE ROW LEVEL SECURITY;
+-- colota_locations tidak pakai RLS karena tidak ada kolom user
+-- ALTER TABLE colota_locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jarak_tempuh ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
@@ -599,8 +614,9 @@ CREATE POLICY "Pengguna hanya bisa melihat data bbmnya sendiri"
 CREATE POLICY "Pengguna hanya bisa melihat pengaturannya sendiri"
   ON user_settings FOR ALL USING (auth.uid() = user_id);
 
-CREATE POLICY "Pengguna hanya bisa melihat data lokasinya sendiri"
-  ON colota_locations FOR ALL USING (auth.uid() = id);
+-- NOTE: colota_locations is an anonymous tracking table (no user_id column).
+-- RLS is disabled for this table since there's no user reference.
+-- If you need per-user isolation, add a user_id column to the table.
 
 CREATE POLICY "Pengguna hanya bisa melihat data jarak tempuhnya sendiri"
   ON jarak_tempuh FOR ALL USING (auth.uid() = user_id);

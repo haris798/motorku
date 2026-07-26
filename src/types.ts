@@ -59,18 +59,24 @@ export interface SyncStatus {
 }
 
 /**
- * A location data point recorded by a GPS tracking device
+ * A location data point recorded by a GPS tracking device (colota_locations table).
+ * Maps directly to the actual Supabase table schema.
  */
 export interface ColotaLocation {
-  location_id: string;
   id: string;
-  latitude: number;
-  longitude: number;
-  altitude?: number;
-  speed?: number;
-  accuracy?: number;
-  recorded_at: string; // timestamp when the location was recorded
-  created_at?: string;
+  tid: string;
+  lat: number;
+  lon: number;
+  acc: number;
+  alt: number;
+  vel: number;
+  bear: number;
+  batt: number;
+  bs: number;
+  tst: number; // Unix timestamp in seconds
+  raw_payload?: any;
+  received_at: string;
+  created_at: string;
 }
 
 /**
