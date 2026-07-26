@@ -63,7 +63,7 @@ export interface SyncStatus {
  */
 export interface ColotaLocation {
   id: string;
-  user_id?: string;
+  userid?: string;
   latitude: number;
   longitude: number;
   altitude?: number;
