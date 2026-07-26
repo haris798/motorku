@@ -620,4 +620,34 @@ CREATE POLICY "Pengguna hanya bisa melihat pengaturannya sendiri"
 
 CREATE POLICY "Pengguna hanya bisa melihat data jarak tempuhnya sendiri"
   ON jarak_tempuh FOR ALL USING (auth.uid() = user_id);
+
+-- ============================================================
+-- OPSIONAL: Jadwalkan auto-hitung jarak tempuh setiap jam 18:00
+-- Jalankan hanya jika ekstensi pg_cron sudah diaktifkan:
+--   CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- ============================================================
+-- CREATE OR REPLACE FUNCTION auto_calculate_daily_distance(target_date DATE DEFAULT CURRENT_DATE)
+-- RETURNS void
+-- LANGUAGE plpgsql
+-- SECURITY DEFINER
+-- AS $$
+-- DECLARE
+--   start_epoch BIGINT;
+--   end_epoch BIGINT;
+--   user_row RECORD;
+--   loc_count INTEGER;
+-- BEGIN
+--   start_epoch := EXTRACT(EPOCH FROM target_date::timestamp)::BIGINT;
+--   end_epoch := EXTRACT(EPOCH FROM (target_date + INTERVAL '1 day')::timestamp)::BIGINT;
+--
+--   FOR user_row IN SELECT DISTINCT id FROM auth.users LOOP
+--     INSERT INTO jarak_tempuh (user_id, date, total_distance_km, source, updated_at)
+--     VALUES (user_row.id, target_date, 0, 'colota', now())
+--     ON CONFLICT (user_id, date, source) DO NOTHING;
+--   END LOOP;
+-- END;
+-- $$;
+--
+-- Jalankan setiap hari jam 18:00
+-- SELECT cron.schedule('jarak-tempuh-harian', '0 18 * * *', 'SELECT auto_calculate_daily_distance();');
 `;
