@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { OilLog, FuelLog, AppSettings, JarakTempuh } from '../types';
 import { formatIDR } from '../utils/export';
 import { fetchJarakTempuh, calculateAndSaveDailyDistance } from '../lib/supabaseClient';
-import { 
+import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line, AreaChart, Area
 } from 'recharts';
-import { 
-  Gauge, Droplets, Fuel, AlertTriangle, CheckCircle2, TrendingUp, Coins, Milestone, Activity, CalendarClock,
-  MapPin, RefreshCw, Loader2
+import {
+  Gauge, Droplets, Fuel, AlertTriangle, CheckCircle2, TrendingUp, Coins, Activity,
+  MapPin, RefreshCw, Loader2, Timer, Zap, Flame,
+  Battery, Wrench, Clock, Target, Navigation, Milestone
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface DashboardProps {
   oilLogs: OilLog[];
@@ -18,33 +20,102 @@ interface DashboardProps {
   onNavigate: (tab: string) => void;
 }
 
+// ─── Animated Counter Component ─────────────────────────────────────────────
+function AnimatedCounter({
+  value,
+  suffix = '',
+  prefix = '',
+  decimals = 0,
+  duration = 1.5,
+}: {
+  value: number;
+  suffix?: string;
+  prefix?: string;
+  decimals?: number;
+  duration?: number;
+}) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef<number | null>(null);
+
+  useEffect(() => {
+    const start = performance.now();
+    const from = 0;
+    const to = value;
+
+    const animate = (now: number) => {
+      const elapsed = (now - start) / 1000;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(from + (to - from) * eased);
+      if (progress < 1) {
+        ref.current = requestAnimationFrame(animate);
+      }
+    };
+
+    ref.current = requestAnimationFrame(animate);
+    return () => {
+      if (ref.current) cancelAnimationFrame(ref.current);
+    };
+  }, [value, duration]);
+
+  return (
+    <span>
+      {prefix}{display.toFixed(decimals)}{suffix}
+    </span>
+  );
+}
+
+// ─── Stagger Container ───────────────────────────────────────────────────────
+const stagger = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+  },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.92 },
+  show: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const getMonthYearKey = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+  return `${months[d.getMonth()]} ${d.getFullYear().toString().substring(2)}`;
+};
+
+const getOilHealthColor = (pct: number) => {
+  if (pct > 40) return { stroke: '#10b981', bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-950/30', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-900/40', ring: 'ring-emerald-500/30' };
+  if (pct > 15) return { stroke: '#f59e0b', bg: 'bg-amber-500', light: 'bg-amber-50 dark:bg-amber-950/30', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-900/40', ring: 'ring-amber-500/30' };
+  return { stroke: '#ef4444', bg: 'bg-rose-500', light: 'bg-rose-50 dark:bg-rose-950/30', text: 'text-rose-700 dark:text-rose-400', border: 'border-rose-200 dark:border-rose-900/40', ring: 'ring-rose-500/30' };
+};
+
+// ─── Dashboard Component ─────────────────────────────────────────────────────
 export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: DashboardProps) {
-  // 1. Calculate General Mileage
+  // ── Derived Data ──────────────────────────────────────────────────────────
   const maxOilMileage = oilLogs.length > 0 ? Math.max(...oilLogs.map(l => l.mileage)) : 0;
   const maxFuelMileage = fuelLogs.length > 0 ? Math.max(...fuelLogs.map(l => l.mileage)) : 0;
   const currentMileage = Math.max(maxOilMileage, maxFuelMileage);
-
-  // Odometer Span (from earliest recorded log to latest)
   const allMileages = [...oilLogs.map(l => l.mileage), ...fuelLogs.map(l => l.mileage)].filter(m => m > 0);
   const minMileage = allMileages.length > 0 ? Math.min(...allMileages) : 0;
   const odometerSpan = currentMileage - minMileage;
 
-  // 2. Oil Change Calculations
-  const lastOilLog = oilLogs.length > 0 ? oilLogs[0] : null; // sorted desc
-  
-  let elapsedKm = 0;
-  let remainingKm = settings.oilChangeIntervalKm;
-  let oilLifeKmPercent = 100;
-  
-  let elapsedDays = 0;
-  let remainingDays = settings.oilChangeIntervalDays;
-  let oilLifeDaysPercent = 100;
+  const lastOilLog = oilLogs.length > 0 ? oilLogs[0] : null;
+  let elapsedKm = 0, remainingKm = settings.oilChangeIntervalKm, oilLifeKmPercent = 100;
+  let elapsedDays = 0, remainingDays = settings.oilChangeIntervalDays, oilLifeDaysPercent = 100;
 
   if (lastOilLog) {
     elapsedKm = currentMileage - lastOilLog.mileage;
     remainingKm = Math.max(0, settings.oilChangeIntervalKm - elapsedKm);
     oilLifeKmPercent = Math.max(0, Math.min(100, Math.round((remainingKm / settings.oilChangeIntervalKm) * 100)));
-
     const lastDate = new Date(lastOilLog.date);
     const today = new Date();
     const elapsedMs = today.getTime() - lastDate.getTime();
@@ -52,71 +123,51 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
     remainingDays = Math.max(0, settings.oilChangeIntervalDays - elapsedDays);
     oilLifeDaysPercent = Math.max(0, Math.min(100, Math.round((remainingDays / settings.oilChangeIntervalDays) * 100)));
   }
-
-  // Final oil life index is the minimum of mileage health and day health
   const oilLifePercent = lastOilLog ? Math.min(oilLifeKmPercent, oilLifeDaysPercent) : 0;
+  const healthColor = getOilHealthColor(oilLifePercent);
 
-  // 3. BBM Analytics
+  // BBM Analytics
   const totalFuelCost = fuelLogs.reduce((sum, l) => sum + l.cost, 0);
   const totalLiters = fuelLogs.reduce((sum, l) => sum + l.liters, 0);
-  
   const logsWithEfficiency = fuelLogs.filter(l => l.efficiency && l.efficiency > 0);
   const avgEfficiency = logsWithEfficiency.length > 0
-    ? logsWithEfficiency.reduce((sum, l) => sum + (l.efficiency || 0), 0) / logsWithEfficiency.length
-    : 0;
-
+    ? logsWithEfficiency.reduce((sum, l) => sum + (l.efficiency || 0), 0) / logsWithEfficiency.length : 0;
   const totalOilCost = oilLogs.reduce((sum, l) => sum + l.cost, 0);
   const totalExpenses = totalFuelCost + totalOilCost;
-
-  // Cost per KM (total fuel cost over distance span)
   const costPerKm = odometerSpan > 0 ? totalFuelCost / odometerSpan : 0;
 
-  // 4. Prepare Chart Data for Monthly Expenses
-  // We aggregate oil & fuel costs by Month-Year (e.g. "Jul 26")
+  // Monthly chart data
   const monthlyDataMap = new Map<string, { month: string; fuel: number; oil: number }>();
-  
-  // Helper to parse date to Indonesian Month abbreviation
-  const getMonthYearKey = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
-    return `${months[d.getMonth()]} ${d.getFullYear().toString().substring(2)}`;
-  };
-
-  // Pre-populate last 6 months to guarantee continuous visual timeline
   const today = new Date();
   for (let i = 5; i >= 0; i--) {
     const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     const key = getMonthYearKey(d.toISOString());
     monthlyDataMap.set(key, { month: key, fuel: 0, oil: 0 });
   }
-
-  // Populate fuel costs
   fuelLogs.forEach(log => {
     const key = getMonthYearKey(log.date);
-    if (monthlyDataMap.has(key)) {
-      const val = monthlyDataMap.get(key)!;
-      val.fuel += log.cost;
-    } else {
-      // Dynamic insertion of older logs if they exist
-      monthlyDataMap.set(key, { month: key, fuel: log.cost, oil: 0 });
-    }
+    if (monthlyDataMap.has(key)) monthlyDataMap.get(key)!.fuel += log.cost;
+    else monthlyDataMap.set(key, { month: key, fuel: log.cost, oil: 0 });
   });
-
-  // Populate oil costs
   oilLogs.forEach(log => {
     const key = getMonthYearKey(log.date);
-    if (monthlyDataMap.has(key)) {
-      const val = monthlyDataMap.get(key)!;
-      val.oil += log.cost;
-    } else {
-      monthlyDataMap.set(key, { month: key, fuel: 0, oil: log.cost });
-    }
+    if (monthlyDataMap.has(key)) monthlyDataMap.get(key)!.oil += log.cost;
+    else monthlyDataMap.set(key, { month: key, fuel: 0, oil: log.cost });
   });
-
-  // Convert map to sorted array (chronological order)
   const sortedMonthlyData = Array.from(monthlyDataMap.values());
 
-  // 5. Jarak Tempuh Harian State & Data Fetching
+  // Efficiency trend
+  const efficiencyTrendData = [...fuelLogs]
+    .filter(l => l.efficiency && l.efficiency > 0)
+    .reverse()
+    .slice(-10)
+    .map(log => ({
+      date: new Date(log.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+      'Efisiensi (km/L)': Number(log.efficiency?.toFixed(1)) || 0,
+      'Rata-rata': Number(avgEfficiency.toFixed(1))
+    }));
+
+  // ── Jarak Tempuh State ────────────────────────────────────────────────────
   const [jarakTempuhRecords, setJarakTempuhRecords] = useState<JarakTempuh[]>([]);
   const [jarakLoading, setJarakLoading] = useState(false);
   const [jarakError, setJarakError] = useState<string | null>(null);
@@ -124,46 +175,32 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
   const [calcMessage, setCalcMessage] = useState<string | null>(null);
 
   const loadJarakTempuh = async () => {
-    setJarakLoading(true);
-    setJarakError(null);
+    setJarakLoading(true); setJarakError(null);
     try {
       const { records, error } = await fetchJarakTempuh();
-      if (error) {
-        setJarakError(error);
-      } else {
-        setJarakTempuhRecords(records);
-      }
+      if (error) setJarakError(error);
+      else setJarakTempuhRecords(records);
     } catch (err: any) {
       setJarakError(err.message || 'Gagal memuat data jarak tempuh.');
-    } finally {
-      setJarakLoading(false);
-    }
+    } finally { setJarakLoading(false); }
   };
 
-  useEffect(() => {
-    loadJarakTempuh();
-  }, []);
+  useEffect(() => { loadJarakTempuh(); }, []);
 
   const handleCalculateToday = async () => {
-    setCalculatingToday(true);
-    setCalcMessage(null);
+    setCalculatingToday(true); setCalcMessage(null);
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const result = await calculateAndSaveDailyDistance(today);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const result = await calculateAndSaveDailyDistance(todayStr);
       setCalcMessage(result.message);
-      if (result.success) {
-        // Refresh the data
-        loadJarakTempuh();
-      }
-    } catch (err: any) {
-      setCalcMessage(`Error: ${err.message}`);
-    } finally {
+      if (result.success) loadJarakTempuh();
+    } catch (err: any) { setCalcMessage(`Error: ${err.message}`); }
+    finally {
       setCalculatingToday(false);
       setTimeout(() => setCalcMessage(null), 5000);
     }
   };
 
-  // Prepare chart data for jarak_tempuh (last 14 days sorted ascending)
   const jarakChartData = [...jarakTempuhRecords]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(-14)
@@ -172,485 +209,751 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
       'Jarak (km)': Number(r.total_distance_km.toFixed(1)),
     }));
 
-  // Summary stats
   const totalJarak = jarakTempuhRecords.reduce((sum, r) => sum + r.total_distance_km, 0);
-  const avgDailyJarak = jarakTempuhRecords.length > 0
-    ? totalJarak / jarakTempuhRecords.length
-    : 0;
-  const maxJarak = jarakTempuhRecords.length > 0
-    ? Math.max(...jarakTempuhRecords.map(r => r.total_distance_km))
-    : 0;
+  const avgDailyJarak = jarakTempuhRecords.length > 0 ? totalJarak / jarakTempuhRecords.length : 0;
+  const maxJarak = jarakTempuhRecords.length > 0 ? Math.max(...jarakTempuhRecords.map(r => r.total_distance_km)) : 0;
 
-  // 6. Prepare Chart Data for Fuel Efficiency Trend
-  // We'll show the fuel efficiency over consecutive fuel log inputs (limit to 10 entries for neatness)
-  const efficiencyTrendData = [...fuelLogs]
-    .filter(l => l.efficiency && l.efficiency > 0)
-    .reverse() // chronological
-    .slice(-10) // last 10 logs
-    .map(log => ({
-      date: new Date(log.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-      'Efisiensi (km/L)': Number(log.efficiency?.toFixed(1)) || 0,
-      'Rata-rata': Number(avgEfficiency.toFixed(1))
-    }));
+  // Chart style helpers
+  const chartTooltipStyle = {
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    backdropFilter: 'blur(12px)',
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: '#fff',
+    padding: '10px 14px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+  };
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      {/* 1. Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-700 dark:from-slate-800 dark:via-indigo-950/70 dark:to-slate-800 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 translate-y-8 w-48 h-48 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
-        
-        <div className="z-10">
-          <h1 className="text-3xl md:text-3xl font-extrabold tracking-tight">
-            Monitor Performa Motor
-          </h1>
-          <p className="text-indigo-100 dark:text-slate-300 text-sm md:text-base mt-1 max-w-md">
-            Pantau masa pakai oli, hitung efisiensi bahan bakar secara akurat.
-          </p>
-        </div>
+    <motion.div
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+      className="space-y-5 md:space-y-6 px-0 md:px-1"
+    >
+      {/* ═══════════════════════ 1. HERO HEADER ═══════════════════════ */}
+      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 text-white shadow-2xl shadow-indigo-600/20 dark:shadow-black/40">
+        {/* Decorative blobs */}
+        <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-indigo-400/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="flex gap-3 z-10">
-          <button
-            id="dash-add-oil"
-            onClick={() => onNavigate('oil')}
-            className="px-4 py-2 bg-white text-indigo-700 dark:bg-slate-900 dark:text-indigo-400 font-bold rounded-xl text-sm flex items-center gap-1.5 shadow-md shadow-black/5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer active:scale-95"
+        {/* Grid pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+            backgroundSize: '24px 24px',
+          }}
+        />
+
+        <div className="relative z-10 p-5 md:p-7 lg:p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white/15 backdrop-blur-sm rounded-xl ring-1 ring-white/20">
+                  <Gauge className="w-5 h-5" />
+                </div>
+                <div>
+                  <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight font-display">
+                    Dashboard Motor
+                  </h1>
+                  <p className="text-indigo-200/80 dark:text-slate-400 text-sm mt-0.5">
+                    Pantau performa, efisiensi, dan biaya perawatan motor Anda
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2.5">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => onNavigate('oil')}
+                className="px-4 py-2.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white font-semibold rounded-xl text-sm flex items-center gap-2 transition-all cursor-pointer border border-white/15 shadow-lg"
+              >
+                <Droplets className="w-4 h-4" /> Catat Oli
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => onNavigate('fuel')}
+                className="px-4 py-2.5 bg-white/95 text-indigo-700 font-semibold rounded-xl text-sm flex items-center gap-2 transition-all cursor-pointer shadow-lg hover:shadow-indigo-500/25"
+              >
+                <Fuel className="w-4 h-4" /> Isi BBM
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Mini stats row */}
+          <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { icon: Timer, label: 'Total Pencatatan', value: `${oilLogs.length + fuelLogs.length} log` },
+              { icon: Target, label: 'Rata-rata km/hari', value: avgEfficiency > 0 ? `${avgEfficiency.toFixed(1)} km/L` : '-' },
+              { icon: Flame, label: 'Total Biaya BBM', value: formatIDR(totalFuelCost) },
+              { icon: Wrench, label: 'Servis Oli', value: `${oilLogs.length}x ganti` },
+            ].map((item, i) => (
+              <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                <div className="flex items-center gap-2 text-indigo-200/70 text-[11px] font-medium uppercase tracking-wider mb-1">
+                  <item.icon className="w-3 h-3" />
+                  {item.label}
+                </div>
+                <span className="text-sm md:text-base font-bold">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ═══════════════════════ 2. ALERT BANNER ═══════════════════════ */}
+      <AnimatePresence mode="wait">
+        {lastOilLog && (remainingKm <= settings.telegram.notifyOnKmBefore || remainingDays <= settings.telegram.notifyOnDaysBefore) ? (
+          <motion.div
+            key="alert-danger"
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+            className="relative overflow-hidden rounded-xl border border-red-200/60 dark:border-red-900/40 bg-gradient-to-r from-red-50 to-red-50/50 dark:from-red-950/30 dark:to-red-950/10"
           >
-            <Droplets className="w-4 h-4" /> Catat Oli
-          </button>
-          <button
-            id="dash-add-fuel"
-            onClick={() => onNavigate('fuel')}
-            className="px-4 py-2 bg-indigo-500/30 text-white font-bold rounded-xl text-sm border border-white/20 hover:bg-indigo-500/50 transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(239,68,68,0.06),transparent_60%)] pointer-events-none" />
+            <div className="relative flex items-start gap-3.5 p-4 md:p-5">
+              <div className="p-2.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-red-800 dark:text-red-300 text-sm md:text-base">
+                  ⚠️ Jadwal Ganti Oli Sudah Dekat!
+                </p>
+                <p className="text-sm text-red-700/80 dark:text-red-400/70 mt-1 leading-relaxed">
+                  {remainingKm <= 0 && remainingDays <= 0
+                    ? 'Batas kilometer dan hari sudah terlampaui! Segera ganti oli.'
+                    : remainingKm <= 0
+                      ? `Batas kilometer sudah terlampaui! Segera ganti oli motor Anda.`
+                      : remainingDays <= 0
+                        ? `Batas hari sudah terlampaui! Segera ganti oli motor Anda.`
+                        : `Tersisa ${remainingKm.toLocaleString('id-ID')} km atau ${remainingDays} hari lagi.`
+                      }
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onNavigate('oil')}
+                className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-lg shadow-red-600/20"
+              >
+                Ganti Oli Sekarang
+              </motion.button>
+            </div>
+          </motion.div>
+        ) : lastOilLog ? (
+          <motion.div
+            key="alert-safe"
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+            className="relative overflow-hidden rounded-xl border border-emerald-200/60 dark:border-emerald-900/30 bg-gradient-to-r from-emerald-50 to-emerald-50/30 dark:from-emerald-950/20 dark:to-emerald-950/5"
           >
-            <Fuel className="w-4 h-4" /> Beli BBM
-          </button>
-        </div>
-      </div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(16,185,129,0.05),transparent_60%)] pointer-events-none" />
+            <div className="relative flex items-center gap-3.5 p-4 md:p-5">
+              <div className="p-2.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-emerald-800 dark:text-emerald-300 text-sm md:text-base">
+                  ✅ Oli dalam Kondisi Baik
+                </p>
+                <p className="text-sm text-emerald-700/70 dark:text-emerald-400/60 mt-0.5">
+                  Oli masih aman — tersisa {remainingKm.toLocaleString('id-ID')} km atau {remainingDays} hari lagi
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => onNavigate('oil')}
+                className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+              >
+                Lihat Detail
+              </motion.button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="alert-empty"
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+            className="rounded-xl border border-amber-200/60 dark:border-amber-900/30 bg-gradient-to-r from-amber-50 to-amber-50/30 dark:from-amber-950/20 dark:to-amber-950/5 p-4 md:p-5 flex items-center gap-3.5"
+          >
+            <div className="p-2.5 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-amber-800 dark:text-amber-300">Belum Ada Data Ganti Oli</p>
+              <p className="text-sm text-amber-700/70 dark:text-amber-400/60 mt-0.5">
+                Catat ganti oli pertama untuk mulai melacak masa pakai oli
+              </p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onNavigate('oil')}
+              className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 shadow-lg shadow-amber-600/20"
+            >
+              Catat Sekarang
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* 2. Overdue / Alert Status */}
-      {lastOilLog && (remainingKm <= settings.telegram.notifyOnKmBefore || remainingDays <= settings.telegram.notifyOnDaysBefore) ? (
-        <div className="p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/40 text-red-800 dark:text-red-300 flex items-start gap-3 shadow-xs animate-pulse">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-base">Peringatan: Jadwal Ganti Oli Sudah Dekat!</p>
-            <p className="text-sm mt-1 leading-relaxed">
-              Oli motor Anda perlu segera diganti. 
-              {remainingKm <= 0 ? ' Batas kilometer sudah terlampaui!' : ` Tersisa ${remainingKm.toLocaleString('id-ID')} km lagi.`}
-              {remainingDays <= 0 ? ' Batas hari sudah terlampaui!' : ` Tersisa ${remainingDays} hari lagi.`}
-            </p>
-          </div>
-        </div>
-      ) : lastOilLog ? (
-        <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/40 dark:bg-emerald-950/10 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400 flex items-start gap-3">
-          <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-500" />
-          <div>
-            <p className="font-semibold text-base">Oli dalam Kondisi Baik</p>
-            <p className="text-sm mt-0.5">
-              Oli motor Anda masih aman untuk digunakan hingga {remainingKm.toLocaleString('id-ID')} km atau {remainingDays} hari ke depan.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="p-4 rounded-xl border border-amber-100 bg-amber-50/40 dark:bg-amber-950/10 dark:border-amber-900/30 text-amber-800 dark:text-amber-400 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
-          <div>
-            <p className="font-semibold text-base">Belum Ada Data Ganti Oli</p>
-            <p className="text-sm mt-0.5">
-              Silakan tambahkan catatan ganti oli pertama Anda untuk mengaktifkan pelacakan kesehatan oli dan mengaktifkan notifikasi Telegram.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* ═══════════════════════ 3. CORE METRICS ═══════════════════════ */}
+      <motion.div variants={fadeUp} className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {[
+          {
+            icon: Milestone, label: 'Odometer', value: currentMileage, suffix: ' km',
+            color: 'from-indigo-500 to-blue-600', bgLight: 'bg-indigo-50 dark:bg-indigo-950/30',
+            iconColor: 'text-indigo-600 dark:text-indigo-400',
+            decimals: 0,
+            sub: odometerSpan > 0 ? `+${odometerSpan.toLocaleString('id-ID')} km tercatat` : null,
+          },
+          {
+            icon: TrendingUp, label: 'Rata-rata Konsumsi', value: avgEfficiency, suffix: ' km/L',
+            color: 'from-emerald-500 to-teal-600', bgLight: 'bg-emerald-50 dark:bg-emerald-950/30',
+            iconColor: 'text-emerald-600 dark:text-emerald-400',
+            decimals: 1,
+            sub: totalLiters > 0 ? `${totalLiters.toFixed(1)}L total terpakai` : null,
+          },
+          {
+            icon: Coins, label: 'Total Pengeluaran', value: totalExpenses,
+            prefixFn: () => 'Rp', bgLight: 'bg-rose-50 dark:bg-rose-950/30',
+            iconColor: 'text-rose-600 dark:text-rose-400',
+            color: 'from-rose-500 to-pink-600',
+            formatCurrency: true,
+            sub: `BBM ${formatIDR(totalFuelCost)} + Oli ${formatIDR(totalOilCost)}`,
+          },
+          {
+            icon: Zap, label: 'Biaya per km', value: costPerKm,
+            prefixFn: () => 'Rp', bgLight: 'bg-amber-50 dark:bg-amber-950/30',
+            iconColor: 'text-amber-600 dark:text-amber-400',
+            color: 'from-amber-500 to-orange-600',
+            formatCurrency: true,
+            suffix: '/km',
+            sub: odometerSpan > 0 ? `${odometerSpan.toLocaleString('id-ID')} km jarak tempuh` : null,
+          },
+        ].map((metric, idx) => (
+          <motion.div
+            key={idx}
+            variants={scaleIn}
+            whileHover={{ y: -3, transition: { duration: 0.2 } }}
+            className="group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20 transition-all duration-300"
+          >
+            {/* Gradient accent bar */}
+            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${metric.color} opacity-60`} />
 
-      {/* 3. Core Metrics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1 */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
-            <Milestone className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="block text-sm font-medium text-slate-400 dark:text-slate-500">Odometer Saat Ini</span>
-            <span className="text-2xl font-bold text-slate-800 dark:text-white mt-1 block">
-              {currentMileage.toLocaleString('id-ID')} <span className="text-sm font-normal text-slate-400">km</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Metric 2 */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="block text-sm font-medium text-slate-400 dark:text-slate-500">Rata-rata Konsumsi</span>
-            <span className="text-2xl font-bold text-slate-800 dark:text-white mt-1 block">
-              {avgEfficiency > 0 ? avgEfficiency.toFixed(1) : '-'} <span className="text-sm font-normal text-slate-400">km/L</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Metric 3 */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
-            <Coins className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="block text-sm font-medium text-slate-400 dark:text-slate-500">Total Pengeluaran</span>
-            <span className="text-xl font-bold text-slate-800 dark:text-white mt-1 block leading-tight">
-              {formatIDR(totalExpenses)}
-            </span>
-          </div>
-        </div>
-
-        {/* Metric 4 */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
-            <Activity className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="block text-sm font-medium text-slate-400 dark:text-slate-500">Est. Biaya per km</span>
-            <span className="text-xl font-bold text-slate-800 dark:text-white mt-1 block leading-tight">
-              {costPerKm > 0 ? `${formatIDR(costPerKm)}/km` : '-'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Complex Health Widget (Gauge & Details) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Oil health card */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <Gauge className="w-5 h-5 text-indigo-500" /> Status Sisa Masa Pakai Oli
+            <div className="p-4 md:p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className={`p-2.5 rounded-xl ${metric.bgLight} ${metric.iconColor} transition-transform duration-300 group-hover:scale-110`}>
+                  <metric.icon className="w-5 h-5" />
+                </div>
+                {'prefixFn' in metric && metric.value > 0 && (
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                    {metric.prefixFn()}
+                  </span>
+                )}
+              </div>
+              <span className="block text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                {metric.label}
               </span>
-              <span className={`text-sm font-extrabold px-2 py-0.5 rounded-full ${
-                oilLifePercent > 40 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' :
-                oilLifePercent > 15 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400' :
-                'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400'
-              }`}>
+              <div className="flex items-baseline gap-1 flex-wrap">
+                {metric.value > 0 ? (
+                  <span className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">
+                    {metric.formatCurrency ? (
+                      formatIDR(metric.value)
+                    ) : (
+                      <>
+                        <AnimatedCounter value={metric.value} decimals={metric.decimals ?? 0} />
+                        {metric.suffix && <span className="text-sm font-normal text-slate-400 ml-0.5">{metric.suffix}</span>}
+                      </>
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-xl md:text-2xl font-extrabold text-slate-300 dark:text-slate-600">—</span>
+                )}
+              </div>
+              {metric.sub && (
+                <p className="text-[11px] text-slate-400 mt-1.5 truncate">{metric.sub}</p>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* ═══════════════════════ 4. OIL HEALTH + EXPENSES ═══════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
+        {/* ── Oil Health Card ── */}
+        <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-sm">
+          {/* Header */}
+          <div className="p-5 pb-3">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                  <Battery className="w-4 h-4" />
+                </div>
+                Kesehatan Oli
+              </h3>
+              <span className={`text-xs font-extrabold px-2.5 py-1 rounded-full border ${healthColor.border} ${healthColor.light} ${healthColor.text}`}>
                 {oilLifePercent}%
               </span>
             </div>
+            <p className="text-xs text-slate-400">Berdasarkan jarak tempuh dan waktu</p>
+          </div>
 
-            {/* Circular Visual Progress */}
-            <div className="relative flex items-center justify-center py-6">
-              <svg className="w-36 h-36 transform -rotate-90">
-                <circle 
-                  cx="72" cy="72" r="64" 
-                  className="stroke-slate-100 dark:stroke-slate-800 fill-none stroke-[8px]"
-                />
-                <circle 
-                  cx="72" cy="72" r="64" 
-                  className={`fill-none stroke-[10px] stroke-linecap-round transition-all duration-1000 ${
-                    oilLifePercent > 40 ? 'stroke-emerald-500' :
-                    oilLifePercent > 15 ? 'stroke-amber-500' :
-                    'stroke-rose-500'
-                  }`}
-                  style={{
-                    strokeDasharray: 2 * Math.PI * 64,
-                    strokeDashoffset: 2 * Math.PI * 64 * (1 - oilLifePercent / 100)
+          {/* Animated Circular Gauge */}
+          <div className="flex justify-center py-3">
+            <div className="relative w-40 h-40">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
+                <circle cx="80" cy="80" r="68" fill="none" stroke="#e2e8f0" strokeWidth="8" className="dark:stroke-slate-800" />
+                <motion.circle
+                  cx="80" cy="80" r="68"
+                  fill="none"
+                  stroke={healthColor.stroke}
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 68}
+                  initial={{ strokeDashoffset: 2 * Math.PI * 68 }}
+                  animate={{
+                    strokeDashoffset: 2 * Math.PI * 68 * (1 - oilLifePercent / 100),
                   }}
+                  transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
                 />
+                {/* Glow filter */}
+                <defs>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
               </svg>
-              <div className="absolute flex flex-col items-center">
-                <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{oilLifePercent}%</span>
-                <span className="text-[12px] text-slate-400 capitalize tracking-wider font-semibold">Sisa Kualitas</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <motion.span
+                  className="text-3xl font-extrabold text-slate-900 dark:text-white font-display"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                >
+                  {oilLifePercent}%
+                </motion.span>
+                <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest mt-0.5">
+                  Sisa Kualitas
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4 pt-4 border-t border-slate-50 dark:border-slate-800/60 text-sm">
-            {/* Km track */}
+          {/* Progress Bars */}
+          <div className="px-5 pb-5 space-y-3.5">
             <div>
-              <div className="flex justify-between font-medium text-slate-500 dark:text-slate-400 mb-1">
-                <span>Berdasarkan Jarak (km)</span>
+              <div className="flex justify-between text-xs font-medium mb-1.5">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Milestone className="w-3 h-3" /> Jarak
+                </span>
                 <span className="font-bold text-slate-700 dark:text-slate-300">
-                  {lastOilLog ? `${elapsedKm.toLocaleString('id-ID')} / ${settings.oilChangeIntervalKm.toLocaleString('id-ID')} km` : '-'}
+                  {lastOilLog
+                    ? `${elapsedKm.toLocaleString('id-ID')} / ${settings.oilChangeIntervalKm.toLocaleString('id-ID')} km`
+                    : '-'}
                 </span>
               </div>
               <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all ${oilLifeKmPercent > 40 ? 'bg-emerald-500' : oilLifeKmPercent > 15 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                  style={{ width: `${oilLifeKmPercent}%` }}
+                <motion.div
+                  className={`h-full rounded-full ${healthColor.bg}`}
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${oilLifeKmPercent}%` }}
+                  transition={{ duration: 0.8, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
                 />
               </div>
-              <p className="text-[12px] text-slate-400 mt-1">
-                {lastOilLog ? `Sisa ${remainingKm.toLocaleString('id-ID')} km lagi sebelum ganti.` : 'Belum ada data ganti oli.'}
+              <p className="text-[11px] text-slate-400 mt-1">
+                {lastOilLog ? `Sisa ${remainingKm.toLocaleString('id-ID')} km` : '—'}
               </p>
             </div>
-
-            {/* Days track */}
             <div>
-              <div className="flex justify-between font-medium text-slate-500 dark:text-slate-400 mb-1">
-                <span>Berdasarkan Waktu (hari)</span>
+              <div className="flex justify-between text-xs font-medium mb-1.5">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Clock className="w-3 h-3" /> Waktu
+                </span>
                 <span className="font-bold text-slate-700 dark:text-slate-300">
                   {lastOilLog ? `${elapsedDays} / ${settings.oilChangeIntervalDays} hari` : '-'}
                 </span>
               </div>
               <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all ${oilLifeDaysPercent > 40 ? 'bg-emerald-500' : oilLifeDaysPercent > 15 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                  style={{ width: `${oilLifeDaysPercent}%` }}
+                <motion.div
+                  className={`h-full rounded-full ${healthColor.bg}`}
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${oilLifeDaysPercent}%` }}
+                  transition={{ duration: 0.8, delay: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
                 />
               </div>
-              <p className="text-[12px] text-slate-400 mt-1">
-                {lastOilLog ? `Sisa ${remainingDays} hari lagi sebelum ganti.` : 'Belum ada data ganti oli.'}
+              <p className="text-[11px] text-slate-400 mt-1">
+                {lastOilLog ? `Sisa ${remainingDays} hari` : '—'}
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Analytical Charts */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs lg:col-span-2 flex flex-col justify-between">
-          <div>
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
-              <CalendarClock className="w-5 h-5 text-indigo-500" /> Analitik Pengeluaran Bulanan (Rp)
-            </h3>
-            <p className="text-sm text-slate-400 mb-4">Grafik 6 bulan terakhir: akumulasi pengeluaran BBM dan penggantian Oli.</p>
+        {/* ── Monthly Expenses Chart ── */}
+        <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-sm lg:col-span-2">
+          <div className="p-5 pb-2">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
+                  <Activity className="w-4 h-4" />
+                </div>
+                Pengeluaran Bulanan
+              </h3>
+              <span className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-lg font-medium">
+                6 bulan terakhir
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">Biaya BBM dan servis oli per bulan</p>
           </div>
-          <div className="h-64 w-full text-sm">
+
+          <div className="h-64 md:h-72 w-full px-2 pb-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={sortedMonthlyData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" />
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" />
-                <XAxis dataKey="month" tick={{ fill: '#94a3b8' }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
-                <YAxis 
-                  tick={{ fill: '#94a3b8' }} 
-                  stroke="#cbd5e1" 
+              <BarChart data={sortedMonthlyData} margin={{ top: 10, right: 10, left: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" strokeOpacity={0.6} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" strokeOpacity={0.3} />
+                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
+                <YAxis
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  stroke="#cbd5e1"
                   className="dark:stroke-slate-800"
-                  tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${v/1000}k` : v}
+                  tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}jt` : v >= 1000 ? `${(v / 1000).toFixed(0)}rb` : `${v}`}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value) => [formatIDR(Number(value)), '']}
-                  contentStyle={{ 
-                    backgroundColor: '#0f172a', 
-                    borderRadius: '12px', 
-                    border: 'none',
-                    color: 'white'
-                  }}
-                  labelStyle={{ fontWeight: 'bold', color: '#cbd5e1' }}
+                  contentStyle={chartTooltipStyle}
+                  labelStyle={{ fontWeight: 'bold', color: '#cbd5e1', marginBottom: 6 }}
+                  itemStyle={{ padding: '2px 0' }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
-                <Bar dataKey="fuel" name="Pembelian BBM" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="oil" name="Servis / Oli" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                <Legend
+                  iconType="circle"
+                  wrapperStyle={{ paddingTop: '12px', fontSize: '12px' }}
+                />
+                <Bar
+                  dataKey="fuel"
+                  name="Pembelian BBM"
+                  fill="#3b82f6"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={32}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
+                <Bar
+                  dataKey="oil"
+                  name="Servis / Oli"
+                  fill="#a78bfa"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={32}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* 5. Fuel Efficiency Trend Line Chart */}
-      <div className="grid grid-cols-1 gap-6">
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-500" /> Tren Efisiensi Konsumsi Bahan Bakar (km/L)
+      {/* ═══════════════════════ 5. FUEL EFFICIENCY + JARAK TEMPUH ═══════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
+        {/* ── Fuel Efficiency Trend ── */}
+        <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-sm">
+          <div className="p-5 pb-2">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                Efisiensi BBM
               </h3>
-              <p className="text-sm text-slate-400 mt-0.5">Grafik perbandingan efisiensi BBM pada 10 pengisian terakhir.</p>
+              {avgEfficiency > 0 && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">
+                  Ø {avgEfficiency.toFixed(1)} km/L
+                </span>
+              )}
             </div>
-            {avgEfficiency > 0 ? (
-              <span className="text-sm bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/40 font-semibold self-start md:self-auto">
-                Rerata Efisiensi: {avgEfficiency.toFixed(1)} km/L
-              </span>
-            ) : null}
+            <p className="text-xs text-slate-400">Tren efisiensi 10 pengisian terakhir (km/L)</p>
           </div>
 
-          <div className="h-64 w-full text-sm">
+          <div className="h-56 md:h-64 w-full px-2 pb-4">
             {efficiencyTrendData.length === 0 ? (
-              <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/10 p-8 text-center text-slate-400">
-                <Fuel className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" />
-                <p className="text-base font-bold">Data Efisiensi BBM Belum Tersedia</p>
-                <p className="text-sm mt-1 max-w-xs">Efisiensi dihitung secara otomatis jika Anda mencatat minimal 2 pembelian BBM dengan odometer yang terus bertambah.</p>
+              <div className="w-full h-full flex flex-col items-center justify-center px-6">
+                <div className="p-4 rounded-full bg-slate-50 dark:bg-slate-800/50 mb-3">
+                  <Fuel className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Belum Ada Data</p>
+                <p className="text-xs text-slate-400 mt-1 text-center max-w-[220px]">
+                  Catat minimal 2 pembelian BBM dengan odometer untuk melihat efisiensi
+                </p>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onNavigate('fuel')}
+                  className="mt-3 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+                >
+                  Catat BBM
+                </motion.button>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={efficiencyTrendData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" />
-                  <XAxis dataKey="date" tick={{ fill: '#94a3b8' }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
-                  <YAxis tick={{ fill: '#94a3b8' }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#0f172a', 
-                      borderRadius: '12px', 
-                      border: 'none',
-                      color: 'white'
-                    }}
-                    labelStyle={{ fontWeight: 'bold', color: '#cbd5e1' }}
+                <LineChart data={efficiencyTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" strokeOpacity={0.6} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" strokeOpacity={0.3} />
+                  <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
+                  <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={{ fontWeight: 'bold', color: '#cbd5e1', marginBottom: 6 }}
+                    itemStyle={{ padding: '2px 0' }}
                   />
-                  <Legend iconType="plainline" />
-                  <Line 
-                    type="monotone" 
-                    dataKey="Efisiensi (km/L)" 
-                    stroke="#10b981" 
-                    strokeWidth={3} 
-                    dot={{ fill: '#10b981', r: 5 }}
-                    activeDot={{ r: 8 }}
+                  <Legend
+                    iconType="plainline"
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="Rata-rata" 
-                    stroke="#ef4444" 
-                    strokeDasharray="5 5" 
+                  <Line
+                    type="monotone"
+                    dataKey="Efisiensi (km/L)"
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    dot={{ fill: '#10b981', r: 4, stroke: '#fff', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                    animationDuration={1200}
+                    animationEasing="ease-out"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="Rata-rata"
+                    stroke="#f43f5e"
+                    strokeDasharray="6 3"
                     strokeWidth={1.5}
                     dot={false}
+                    animationDuration={1200}
+                    animationEasing="ease-out"
                   />
                 </LineChart>
               </ResponsiveContainer>
             )}
           </div>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* 6. Jarak Tempuh Harian - Line Chart */}
-      <div className="grid grid-cols-1 gap-6">
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-cyan-500" /> Jarak Tempuh Harian (GPS)
+        {/* ── Jarak Tempuh Harian ── */}
+        <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-sm">
+          <div className="p-5 pb-2">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400">
+                  <Navigation className="w-4 h-4" />
+                </div>
+                Jarak Tempuh Harian
               </h3>
-              <p className="text-sm text-slate-400 mt-0.5">
-                Jarak tempuh harian berdasarkan data koordinat GPS dari <b>colota_locations</b>.
-              </p>
+              <div className="flex items-center gap-1.5">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  id="btn-calculate-today"
+                  onClick={handleCalculateToday}
+                  disabled={calculatingToday}
+                  className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                >
+                  {calculatingToday ? (
+                    <><Loader2 className="w-3 h-3 animate-spin" /> Hitung</>
+                  ) : (
+                    <><RefreshCw className="w-3 h-3" /> Hari Ini</>
+                  )}
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  id="btn-refresh-jarak"
+                  onClick={loadJarakTempuh}
+                  disabled={jarakLoading}
+                  className="p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 hover:text-cyan-600 transition-all cursor-pointer"
+                  title="Refresh"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${jarakLoading ? 'animate-spin' : ''}`} />
+                </motion.button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 self-start md:self-auto">
-              <button
-                id="btn-calculate-today"
-                onClick={handleCalculateToday}
-                disabled={calculatingToday}
-                className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-              >
-                {calculatingToday ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menghitung...</>
-                ) : (
-                  <><RefreshCw className="w-3.5 h-3.5" /> Hitung Hari Ini</>
-                )}
-              </button>
-              <button
-                id="btn-refresh-jarak"
-                onClick={loadJarakTempuh}
-                disabled={jarakLoading}
-                className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-cyan-600 transition-all cursor-pointer"
-                title="Refresh data"
-              >
-                <RefreshCw className={`w-4 h-4 ${jarakLoading ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
+            <p className="text-xs text-slate-400">Berdasarkan data GPS (colota_locations)</p>
           </div>
 
           {/* Flash message */}
-          {calcMessage && (
-            <div className={`mb-4 p-3 rounded-xl text-xs flex gap-2 border ${
-              calcMessage.startsWith('Berhasil')
-                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300'
-                : 'bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-300'
-            }`}>
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{calcMessage}</span>
-            </div>
-          )}
+          <AnimatePresence>
+            {calcMessage && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className={`mx-5 mb-3 px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2.5 border ${
+                  calcMessage.startsWith('Berhasil')
+                    ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-300'
+                }`}
+              >
+                <div className={`p-1 rounded-full ${
+                  calcMessage.startsWith('Berhasil') ? 'bg-emerald-200 dark:bg-emerald-900/50' : 'bg-amber-200 dark:bg-amber-900/50'
+                }`}>
+                  <CheckCircle2 className="w-3 h-3" />
+                </div>
+                <span>{calcMessage}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Summary mini-cards */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            <div className="p-3 rounded-xl bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-100/60 dark:border-cyan-900/30 text-center">
-              <span className="block text-[11px] font-semibold uppercase tracking-wider text-cyan-500 dark:text-cyan-400">Total Jarak</span>
-              <span className="text-lg font-extrabold text-slate-800 dark:text-white mt-0.5 block">
-                {totalJarak.toFixed(1)} <span className="text-xs font-normal text-slate-400">km</span>
-              </span>
-            </div>
-            <div className="p-3 rounded-xl bg-violet-50/60 dark:bg-violet-950/20 border border-violet-100/60 dark:border-violet-900/30 text-center">
-              <span className="block text-[11px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400">Rata-rata</span>
-              <span className="text-lg font-extrabold text-slate-800 dark:text-white mt-0.5 block">
-                {avgDailyJarak.toFixed(1)} <span className="text-xs font-normal text-slate-400">km/hari</span>
-              </span>
-            </div>
-            <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100/60 dark:border-amber-900/30 text-center">
-              <span className="block text-[11px] font-semibold uppercase tracking-wider text-amber-500 dark:text-amber-400">Maksimal</span>
-              <span className="text-lg font-extrabold text-slate-800 dark:text-white mt-0.5 block">
-                {maxJarak.toFixed(1)} <span className="text-xs font-normal text-slate-400">km</span>
-              </span>
-            </div>
-          </div>
+          {jarakTempuhRecords.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-3 gap-2 px-5 pb-3"
+            >
+              {[
+                { label: 'Total Jarak', value: totalJarak.toFixed(1), unit: 'km', color: 'cyan' },
+                { label: 'Rata-rata', value: avgDailyJarak.toFixed(1), unit: 'km/hari', color: 'violet' },
+                { label: 'Maksimal', value: maxJarak.toFixed(1), unit: 'km', color: 'amber' },
+              ].map((s, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * i }}
+                  className={`p-2.5 rounded-xl border text-center ${
+                    s.color === 'cyan'
+                      ? 'bg-cyan-50/60 dark:bg-cyan-950/20 border-cyan-100/60 dark:border-cyan-900/30'
+                      : s.color === 'violet'
+                        ? 'bg-violet-50/60 dark:bg-violet-950/20 border-violet-100/60 dark:border-violet-900/30'
+                        : 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-100/60 dark:border-amber-900/30'
+                  }`}
+                >
+                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">{s.label}</span>
+                  <span className="text-base md:text-lg font-extrabold text-slate-800 dark:text-white tabular-nums">
+                    {s.value} <span className="text-[10px] font-normal text-slate-400">{s.unit}</span>
+                  </span>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
 
           {/* Chart */}
-          <div className="h-64 w-full text-sm">
+          <div className="h-56 md:h-64 w-full px-2 pb-4">
             {jarakLoading && jarakTempuhRecords.length === 0 ? (
               <div className="w-full h-full flex items-center justify-center text-slate-400 gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Memuat data jarak tempuh...</span>
+                <span className="text-sm">Memuat data...</span>
               </div>
             ) : jarakError ? (
-              <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/10 p-8 text-center text-slate-400">
-                <MapPin className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" />
-                <p className="text-sm font-semibold">{jarakError}</p>
-                <p className="text-xs mt-1">Hubungkan akun Supabase dan jalankan SQL script di halaman Pengaturan untuk mengaktifkan fitur ini.</p>
+              <div className="w-full h-full flex flex-col items-center justify-center px-6">
+                <div className="p-4 rounded-full bg-slate-50 dark:bg-slate-800/50 mb-3">
+                  <MapPin className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-500">{jarakError}</p>
+                <p className="text-xs text-slate-400 mt-1 text-center max-w-[260px]">
+                  Hubungkan Supabase dan jalankan SQL script di Pengaturan
+                </p>
               </div>
             ) : jarakChartData.length === 0 ? (
-              <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/10 p-8 text-center text-slate-400">
-                <MapPin className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" />
-                <p className="text-base font-bold">Belum Ada Data Jarak Tempuh</p>
-                <p className="text-sm mt-1 max-w-xs">
-                  Isi tabel <b>colota_locations</b> dengan data koordinat GPS, lalu klik <b>"Hitung Hari Ini"</b> untuk menghitung jarak tempuh.
+              <div className="w-full h-full flex flex-col items-center justify-center px-6">
+                <div className="p-4 rounded-full bg-slate-50 dark:bg-slate-800/50 mb-3">
+                  <MapPin className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Belum Ada Data</p>
+                <p className="text-xs text-slate-400 mt-1 text-center max-w-[240px]">
+                  Isi tabel colota_locations dengan data GPS, lalu klik "Hitung Hari Ini"
                 </p>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleCalculateToday}
+                  disabled={calculatingToday}
+                  className="mt-3 px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {calculatingToday ? 'Menghitung...' : 'Hitung Hari Ini'}
+                </motion.button>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={jarakChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                <AreaChart data={jarakChartData} margin={{ top: 10, right: 5, left: -15, bottom: 5 }}>
                   <defs>
                     <linearGradient id="jarakGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
                     </linearGradient>
+                    <filter id="glowChart">
+                      <feGaussianBlur stdDeviation="2" result="blur" />
+                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" />
-                  <XAxis dataKey="date" tick={{ fill: '#94a3b8' }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
-                  <YAxis 
-                    tick={{ fill: '#94a3b8' }} 
-                    stroke="#cbd5e1" 
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" strokeOpacity={0.6} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" strokeOpacity={0.3} />
+                  <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
+                  <YAxis
+                    tick={{ fill: '#94a3b8', fontSize: 11 }}
+                    stroke="#cbd5e1"
                     className="dark:stroke-slate-800"
-                    tickFormatter={(v) => `${v} km`}
+                    tickFormatter={(v) => `${v}km`}
                   />
                   <Tooltip
                     formatter={(value: number) => [`${value.toFixed(1)} km`, 'Jarak Tempuh']}
-                    contentStyle={{ 
-                      backgroundColor: '#0f172a', 
-                      borderRadius: '12px', 
-                      border: 'none',
-                      color: 'white'
-                    }}
-                    labelStyle={{ fontWeight: 'bold', color: '#cbd5e1' }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={{ fontWeight: 'bold', color: '#cbd5e1', marginBottom: 6 }}
+                    itemStyle={{ padding: '2px 0' }}
                   />
-                  <Legend iconType="plainline" />
+                  <Legend
+                    iconType="plainline"
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="Jarak (km)"
                     stroke="#06b6d4"
                     strokeWidth={2.5}
                     fill="url(#jarakGradient)"
-                    dot={{ fill: '#06b6d4', r: 4, strokeWidth: 2, stroke: '#fff' }}
-                    activeDot={{ r: 6, fill: '#06b6d4', strokeWidth: 2, stroke: '#fff' }}
+                    dot={{ fill: '#06b6d4', r: 3.5, stroke: '#fff', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: '#06b6d4', stroke: '#fff', strokeWidth: 2 }}
+                    animationDuration={1200}
+                    animationEasing="ease-out"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          {/* Bottom info */}
+          {/* Bottom info bar */}
           {jarakTempuhRecords.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-slate-50 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
-              <span>{jarakTempuhRecords.length} hari tercatat</span>
-              <span>Sumber: <b>colota_locations</b> (Haversine)</span>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mx-5 mb-4 pt-3 border-t border-slate-50 dark:border-slate-800/60 flex items-center justify-between text-[10px] text-slate-400"
+            >
+              <span className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                {jarakTempuhRecords.length} hari tercatat
+              </span>
+              <span>Sumber: colota_locations (Haversine)</span>
+            </motion.div>
+          )}
+
+          {/* Empty state for no records at all */}
+          {!jarakLoading && !jarakError && jarakTempuhRecords.length === 0 && (
+            <div className="mx-5 mb-4 pt-3 border-t border-slate-50 dark:border-slate-800/60 text-center">
+              <p className="text-[10px] text-slate-400">Integrasikan perangkat GPS untuk mulai melacak jarak tempuh harian</p>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
-    </div>
+
+      {/* ═══════════════════════ FOOTER SPACER ═══════════════════════ */}
+      <div className="h-2" />
+    </motion.div>
   );
 }
