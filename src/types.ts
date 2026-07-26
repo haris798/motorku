@@ -62,8 +62,8 @@ export interface SyncStatus {
  * A location data point recorded by a GPS tracking device
  */
 export interface ColotaLocation {
+  location_id: string;
   id: string;
-  userid?: string;
   latitude: number;
   longitude: number;
   altitude?: number;

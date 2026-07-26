@@ -375,7 +375,7 @@ export async function fetchLocationsByDate(
     const { data, error } = await client
       .from('colota_locations')
       .select('*')
-      .eq('userid', user.id)
+      .eq('id', user.id)
       .gte('recorded_at', `${date}T00:00:00Z`)
       .lt('recorded_at', `${date}T23:59:59Z`)
       .order('recorded_at', { ascending: true });
@@ -541,8 +541,8 @@ CREATE TABLE IF NOT EXISTS user_settings (
 -- Menyimpan titik-titik koordinat dari perangkat pelacak
 -- ============================================================
 CREATE TABLE IF NOT EXISTS colota_locations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  userid UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  location_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
   altitude DOUBLE PRECISION,
@@ -554,7 +554,7 @@ CREATE TABLE IF NOT EXISTS colota_locations (
 
 -- Index untuk mempercepat query berdasarkan tanggal dan user
 CREATE INDEX IF NOT EXISTS idx_colota_locations_user_date
-  ON colota_locations (userid, (recorded_at::date));
+  ON colota_locations (id, (recorded_at::date));
 
 CREATE INDEX IF NOT EXISTS idx_colota_locations_recorded_at
   ON colota_locations (recorded_at);
@@ -600,7 +600,7 @@ CREATE POLICY "Pengguna hanya bisa melihat pengaturannya sendiri"
   ON user_settings FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Pengguna hanya bisa melihat data lokasinya sendiri"
-  ON colota_locations FOR ALL USING (auth.uid() = userid);
+  ON colota_locations FOR ALL USING (auth.uid() = id);
 
 CREATE POLICY "Pengguna hanya bisa melihat data jarak tempuhnya sendiri"
   ON jarak_tempuh FOR ALL USING (auth.uid() = user_id);
