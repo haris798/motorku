@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { OilLog, AppSettings } from '../types';
+import { formatIDR } from '../utils/export';
 import { 
-  Plus, Trash2, Edit3, Calendar, Search, Wrench, Star, X, Check, ArrowUpDown, AlertCircle, AlertTriangle
+  Plus, Trash2, Edit3, Calendar, Search, Wrench, Star, X, ArrowUpDown, AlertCircle
 } from 'lucide-react';
 
 interface OilLogsProps {
@@ -47,7 +48,7 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
     setIsFormOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -107,15 +108,6 @@ export default function OilLogs({ logs, onAddLog, onEditLog, onDeleteLog, settin
 
   // Unique brands in database for filter dropdown
   const uniqueBrands = ['All', ...Array.from(new Set(logs.map(l => l.oil_brand)))];
-
-  // Formatting Helper
-  const formatIDR = (val: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(val);
-  };
 
   return (
     <div className="space-y-6">

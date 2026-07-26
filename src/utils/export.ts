@@ -3,7 +3,7 @@ import { OilLog, FuelLog } from '../types';
 /**
  * Helper to format currency in Indonesian Rupiah
  */
-function formatIDR(value: number): string {
+export function formatIDR(value: number): string {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
@@ -46,6 +46,8 @@ export function exportToCSV(
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    // Revoke object URL to free memory
+    URL.revokeObjectURL(url);
   }
 
   if (type === 'fuel' || type === 'all') {
@@ -73,6 +75,8 @@ export function exportToCSV(
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    // Revoke object URL to free memory
+    URL.revokeObjectURL(url);
   }
 }
 

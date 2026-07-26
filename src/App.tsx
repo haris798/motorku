@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { OilLog, FuelLog, AppSettings, SyncStatus } from './types';
 import { getSupabaseClient, syncWithSupabase } from './lib/supabaseClient';
 import { checkAndSendOilAlert } from './utils/telegram';
 import { exportToCSV, exportToPDF } from './utils/export';
+import { generateUUID } from './utils/uuid';
 import Dashboard from './components/Dashboard';
 import OilLogs from './components/OilLogs';
 import FuelLogs from './components/FuelLogs';
@@ -11,22 +12,6 @@ import {
   Gauge, Droplets, Fuel, Settings, Cloud, CloudOff, FileSpreadsheet, FileText, RefreshCw,
   Sun, Moon, LogOut
 } from 'lucide-react';
-
-// Robust random UUID fallback for iframe sandboxes
-const generateUUID = (): string => {
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
-    try {
-      return window.crypto.randomUUID();
-    } catch (e) {
-      // Fallback
-    }
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
 
 const DEFAULT_SETTINGS: AppSettings = {
   oilChangeIntervalKm: 2000,
@@ -52,7 +37,7 @@ export default function App() {
   const [oilLogs, setOilLogs] = useState<OilLog[]>([]);
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<import('@supabase/supabase-js').User | null>(null);
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -224,7 +209,7 @@ export default function App() {
   }, [oilLogs, fuelLogs, settings.telegram.enabled]);
 
   // 5. Global Actions
-  const handleUpdateSettings = (newSettings: AppSettings) => {
+  const handleUpdateSettings = useCallback((newSettings: AppSettings) => {
     setSettings(newSettings);
     localStorage.setItem('oil_tracker_settings', JSON.stringify(newSettings));
 
@@ -233,24 +218,24 @@ export default function App() {
       localStorage.setItem('supabase_url', newSettings.supabase.url);
       localStorage.setItem('supabase_anon_key', newSettings.supabase.anonKey);
     }
-  };
+  }, []);
 
-  const handleToggleDarkMode = () => {
-    const nextDark = !darkMode;
-    setDarkMode(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('oil_tracker_theme', 'dark');
-      handleUpdateSettings({ ...settings, theme: 'dark' });
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('oil_tracker_theme', 'light');
-      handleUpdateSettings({ ...settings, theme: 'light' });
-    }
-  };
+  const handleToggleDarkMode = useCallback(() => {
+    setDarkMode(prev => {
+      const nextDark = !prev;
+      if (nextDark) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('oil_tracker_theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('oil_tracker_theme', 'light');
+      }
+      return nextDark;
+    });
+  }, []);
 
   // Perform full database cloud sync
-  const handleTriggerSync = async (customOilLogs?: OilLog[], customFuelLogs?: FuelLog[]) => {
+  const handleTriggerSync = useCallback(async (customOilLogs?: OilLog[], customFuelLogs?: FuelLog[]) => {
     if (!isOnline) {
       alert('Tidak ada koneksi internet. Sinkronisasi ditunda.');
       return;
@@ -290,7 +275,7 @@ export default function App() {
       setSyncProgressMsg('');
       alert(`Gagal sinkronisasi: ${e.message || e}`);
     }
-  };
+  }, [isOnline, oilLogs, fuelLogs, settings.supabase.connected]);
 
   const handleLogout = async () => {
     const client = getSupabaseClient();

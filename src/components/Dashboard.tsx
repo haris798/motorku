@@ -1,10 +1,14 @@
-import { OilLog, FuelLog, AppSettings } from '../types';
+import { useState, useEffect } from 'react';
+import { OilLog, FuelLog, AppSettings, JarakTempuh } from '../types';
+import { formatIDR } from '../utils/export';
+import { fetchJarakTempuh, calculateAndSaveDailyDistance } from '../lib/supabaseClient';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  LineChart, Line
+  LineChart, Line, AreaChart, Area
 } from 'recharts';
 import { 
-  Gauge, Droplets, Fuel, AlertTriangle, CheckCircle2, TrendingUp, Coins, Milestone, ArrowUpRight, Activity, CalendarClock
+  Gauge, Droplets, Fuel, AlertTriangle, CheckCircle2, TrendingUp, Coins, Milestone, Activity, CalendarClock,
+  MapPin, RefreshCw, Loader2
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -67,15 +71,6 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
   // Cost per KM (total fuel cost over distance span)
   const costPerKm = odometerSpan > 0 ? totalFuelCost / odometerSpan : 0;
 
-  // Helper to format currency
-  const formatIDR = (val: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(val);
-  };
-
   // 4. Prepare Chart Data for Monthly Expenses
   // We aggregate oil & fuel costs by Month-Year (e.g. "Jul 26")
   const monthlyDataMap = new Map<string, { month: string; fuel: number; oil: number }>();
@@ -121,7 +116,72 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
   // Convert map to sorted array (chronological order)
   const sortedMonthlyData = Array.from(monthlyDataMap.values());
 
-  // 5. Prepare Chart Data for Fuel Efficiency Trend
+  // 5. Jarak Tempuh Harian State & Data Fetching
+  const [jarakTempuhRecords, setJarakTempuhRecords] = useState<JarakTempuh[]>([]);
+  const [jarakLoading, setJarakLoading] = useState(false);
+  const [jarakError, setJarakError] = useState<string | null>(null);
+  const [calculatingToday, setCalculatingToday] = useState(false);
+  const [calcMessage, setCalcMessage] = useState<string | null>(null);
+
+  const loadJarakTempuh = async () => {
+    setJarakLoading(true);
+    setJarakError(null);
+    try {
+      const { records, error } = await fetchJarakTempuh();
+      if (error) {
+        setJarakError(error);
+      } else {
+        setJarakTempuhRecords(records);
+      }
+    } catch (err: any) {
+      setJarakError(err.message || 'Gagal memuat data jarak tempuh.');
+    } finally {
+      setJarakLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadJarakTempuh();
+  }, []);
+
+  const handleCalculateToday = async () => {
+    setCalculatingToday(true);
+    setCalcMessage(null);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const result = await calculateAndSaveDailyDistance(today);
+      setCalcMessage(result.message);
+      if (result.success) {
+        // Refresh the data
+        loadJarakTempuh();
+      }
+    } catch (err: any) {
+      setCalcMessage(`Error: ${err.message}`);
+    } finally {
+      setCalculatingToday(false);
+      setTimeout(() => setCalcMessage(null), 5000);
+    }
+  };
+
+  // Prepare chart data for jarak_tempuh (last 14 days sorted ascending)
+  const jarakChartData = [...jarakTempuhRecords]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(-14)
+    .map(r => ({
+      date: new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+      'Jarak (km)': Number(r.total_distance_km.toFixed(1)),
+    }));
+
+  // Summary stats
+  const totalJarak = jarakTempuhRecords.reduce((sum, r) => sum + r.total_distance_km, 0);
+  const avgDailyJarak = jarakTempuhRecords.length > 0
+    ? totalJarak / jarakTempuhRecords.length
+    : 0;
+  const maxJarak = jarakTempuhRecords.length > 0
+    ? Math.max(...jarakTempuhRecords.map(r => r.total_distance_km))
+    : 0;
+
+  // 6. Prepare Chart Data for Fuel Efficiency Trend
   // We'll show the fuel efficiency over consecutive fuel log inputs (limit to 10 entries for neatness)
   const efficiencyTrendData = [...fuelLogs]
     .filter(l => l.efficiency && l.efficiency > 0)
@@ -443,6 +503,152 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
               </ResponsiveContainer>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* 6. Jarak Tempuh Harian - Line Chart */}
+      <div className="grid grid-cols-1 gap-6">
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-xs">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-cyan-500" /> Jarak Tempuh Harian (GPS)
+              </h3>
+              <p className="text-sm text-slate-400 mt-0.5">
+                Jarak tempuh harian berdasarkan data koordinat GPS dari <b>colota_locations</b>.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-start md:self-auto">
+              <button
+                id="btn-calculate-today"
+                onClick={handleCalculateToday}
+                disabled={calculatingToday}
+                className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+              >
+                {calculatingToday ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menghitung...</>
+                ) : (
+                  <><RefreshCw className="w-3.5 h-3.5" /> Hitung Hari Ini</>
+                )}
+              </button>
+              <button
+                id="btn-refresh-jarak"
+                onClick={loadJarakTempuh}
+                disabled={jarakLoading}
+                className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-cyan-600 transition-all cursor-pointer"
+                title="Refresh data"
+              >
+                <RefreshCw className={`w-4 h-4 ${jarakLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Flash message */}
+          {calcMessage && (
+            <div className={`mb-4 p-3 rounded-xl text-xs flex gap-2 border ${
+              calcMessage.startsWith('Berhasil')
+                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300'
+                : 'bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-300'
+            }`}>
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{calcMessage}</span>
+            </div>
+          )}
+
+          {/* Summary mini-cards */}
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="p-3 rounded-xl bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-100/60 dark:border-cyan-900/30 text-center">
+              <span className="block text-[11px] font-semibold uppercase tracking-wider text-cyan-500 dark:text-cyan-400">Total Jarak</span>
+              <span className="text-lg font-extrabold text-slate-800 dark:text-white mt-0.5 block">
+                {totalJarak.toFixed(1)} <span className="text-xs font-normal text-slate-400">km</span>
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-violet-50/60 dark:bg-violet-950/20 border border-violet-100/60 dark:border-violet-900/30 text-center">
+              <span className="block text-[11px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400">Rata-rata</span>
+              <span className="text-lg font-extrabold text-slate-800 dark:text-white mt-0.5 block">
+                {avgDailyJarak.toFixed(1)} <span className="text-xs font-normal text-slate-400">km/hari</span>
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100/60 dark:border-amber-900/30 text-center">
+              <span className="block text-[11px] font-semibold uppercase tracking-wider text-amber-500 dark:text-amber-400">Maksimal</span>
+              <span className="text-lg font-extrabold text-slate-800 dark:text-white mt-0.5 block">
+                {maxJarak.toFixed(1)} <span className="text-xs font-normal text-slate-400">km</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="h-64 w-full text-sm">
+            {jarakLoading && jarakTempuhRecords.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-slate-400 gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Memuat data jarak tempuh...</span>
+              </div>
+            ) : jarakError ? (
+              <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/10 p-8 text-center text-slate-400">
+                <MapPin className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" />
+                <p className="text-sm font-semibold">{jarakError}</p>
+                <p className="text-xs mt-1">Hubungkan akun Supabase dan jalankan SQL script di halaman Pengaturan untuk mengaktifkan fitur ini.</p>
+              </div>
+            ) : jarakChartData.length === 0 ? (
+              <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/10 p-8 text-center text-slate-400">
+                <MapPin className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" />
+                <p className="text-base font-bold">Belum Ada Data Jarak Tempuh</p>
+                <p className="text-sm mt-1 max-w-xs">
+                  Isi tabel <b>colota_locations</b> dengan data koordinat GPS, lalu klik <b>"Hitung Hari Ini"</b> untuk menghitung jarak tempuh.
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={jarakChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="jarakGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" />
+                  <XAxis dataKey="date" tick={{ fill: '#94a3b8' }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
+                  <YAxis 
+                    tick={{ fill: '#94a3b8' }} 
+                    stroke="#cbd5e1" 
+                    className="dark:stroke-slate-800"
+                    tickFormatter={(v) => `${v} km`}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [`${value.toFixed(1)} km`, 'Jarak Tempuh']}
+                    contentStyle={{ 
+                      backgroundColor: '#0f172a', 
+                      borderRadius: '12px', 
+                      border: 'none',
+                      color: 'white'
+                    }}
+                    labelStyle={{ fontWeight: 'bold', color: '#cbd5e1' }}
+                  />
+                  <Legend iconType="plainline" />
+                  <Area
+                    type="monotone"
+                    dataKey="Jarak (km)"
+                    stroke="#06b6d4"
+                    strokeWidth={2.5}
+                    fill="url(#jarakGradient)"
+                    dot={{ fill: '#06b6d4', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 6, fill: '#06b6d4', strokeWidth: 2, stroke: '#fff' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Bottom info */}
+          {jarakTempuhRecords.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-slate-50 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+              <span>{jarakTempuhRecords.length} hari tercatat</span>
+              <span>Sumber: <b>colota_locations</b> (Haversine)</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -57,3 +57,39 @@ export interface SyncStatus {
   pendingSyncCount: number;
   isSyncing: boolean;
 }
+
+/**
+ * A location data point recorded by a GPS tracking device
+ */
+export interface ColotaLocation {
+  id: string;
+  user_id?: string;
+  latitude: number;
+  longitude: number;
+  altitude?: number;
+  speed?: number;
+  accuracy?: number;
+  recorded_at: string; // timestamp when the location was recorded
+  created_at?: string;
+}
+
+/**
+ * Calculated daily distance traveled from location data
+ */
+export interface JarakTempuh {
+  id: string;
+  user_id?: string;
+  date: string; // tanggal perjalanan (YYYY-MM-DD)
+  total_distance_km: number; // total jarak tempuh dalam kilometer
+  source: 'colota' | 'manual';
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Parameters for calculating distance from colota_locations
+ */
+export interface DistanceCalculationParams {
+  date: string; // tanggal yang akan dihitung (YYYY-MM-DD)
+  userId?: string;
+}

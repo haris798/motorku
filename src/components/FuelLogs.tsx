@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { FuelLog, AppSettings } from '../types';
+import { formatIDR } from '../utils/export';
 import { 
-  Plus, Trash2, Edit3, Calendar, Search, Fuel, X, Check, ArrowUpDown, AlertCircle, Sparkles
+  Plus, Trash2, Edit3, Calendar, Search, Fuel, X, ArrowUpDown, AlertCircle, Sparkles
 } from 'lucide-react';
 
 interface FuelLogsProps {
@@ -76,7 +77,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
     return undefined;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -142,14 +143,6 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
   });
 
   const uniqueFuelTypes = ['All', ...Array.from(new Set(logs.map(l => l.fuel_type)))];
-
-  const formatIDR = (val: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(val);
-  };
 
   const getEfficiencyBadge = (eff: number | undefined) => {
     if (!eff) return <span className="text-[12px] bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 px-2 py-0.5 rounded-full font-medium">BBM Pertama</span>;
