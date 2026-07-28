@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { FuelLog, AppSettings } from '../types';
 import { formatIDR } from '../utils/export';
+import { fetchJarakRecords } from '../lib/supabaseClient';
 import {
   Plus, Trash2, Edit3, Calendar, Search, Fuel, X, ArrowUpDown, AlertCircle, Sparkles,
   TrendingUp, Droplets, DollarSign, Gauge, ListFilter, Clock
@@ -58,20 +59,20 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [mileage, setMileage] = useState<number | ''>('');
   const [cost, setCost] = useState<number | ''>('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [effCalculating, setEffCalculating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [fuelTypeFilter, setFuelTypeFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   const resetForm = () => {
     setDate(new Date().toISOString().split('T')[0]);
-    setMileage('');
     setCost('');
     setFormError(null);
     setEditingId(null);
     setIsFormOpen(false);
+    setEffCalculating(false);
   };
 
   const handleOpenAdd = () => {
@@ -82,35 +83,48 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
   const handleOpenEdit = (log: FuelLog) => {
     setEditingId(log.id);
     setDate(log.date);
-    setMileage(log.mileage);
     setCost(log.cost);
     setFormError(null);
     setIsFormOpen(true);
   };
 
-  const calculateEfficiencyValue = (currentMile: number, currentLiters: number): number | undefined => {
-    const sortedOtherLogs = logs
+  const calculateEfficiencyFromJarak = async (
+    currentDate: string,
+    currentLiters: number
+  ): Promise<number | undefined> => {
+    // Find previous fuel log chronologically
+    const sortedLogs = [...logs]
       .filter(l => l.id !== editingId)
-      .sort((a, b) => a.mileage - b.mileage);
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     let prevLog: FuelLog | null = null;
-    for (let i = sortedOtherLogs.length - 1; i >= 0; i--) {
-      if (sortedOtherLogs[i].mileage < currentMile) {
-        prevLog = sortedOtherLogs[i];
+    for (let i = sortedLogs.length - 1; i >= 0; i--) {
+      if (new Date(sortedLogs[i].date).getTime() < new Date(currentDate).getTime()) {
+        prevLog = sortedLogs[i];
         break;
       }
     }
 
-    if (prevLog) {
-      const distance = currentMile - prevLog.mileage;
-      if (distance > 0 && currentLiters > 0) {
-        return distance / currentLiters;
-      }
+    if (!prevLog) return undefined;
+
+    // Fetch jarak records between previous fill date and current date
+    const { records, error } = await fetchJarakRecords();
+    if (error || records.length === 0) return undefined;
+
+    const startDate = prevLog.date;
+    const endDate = currentDate;
+
+    const totalKm = records
+      .filter(r => r.date >= startDate && r.date <= endDate)
+      .reduce((sum, r) => sum + r.total_km, 0);
+
+    if (totalKm > 0 && currentLiters > 0) {
+      return totalKm / currentLiters;
     }
     return undefined;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setFormError(null);
     const cNum = Number(cost);
@@ -118,14 +132,17 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
       setFormError('Biaya pembelian bbm (Rp) harus lebih besar dari 0.');
       return;
     }
-    const mNum = Number(mileage);
-    if (!mileage || mNum <= 0) {
-      setFormError('Odometer (km) saat pembelian harus diisi.');
-      return;
-    }
     const pricePerLiter = (settings?.fuelPricePerLiter || 10) * 1000;
     const lNum = Number((cNum / pricePerLiter).toFixed(2));
-    const efficiency = calculateEfficiencyValue(mNum, lNum);
+
+    // Calculate efficiency using jarak table
+    setEffCalculating(true);
+    const efficiency = await calculateEfficiencyFromJarak(date, lNum);
+    setEffCalculating(false);
+
+    // Set mileage to max existing (for record, no longer used for efficiency)
+    const mNum = logs.length > 0 ? Math.max(...logs.map(l => l.mileage)) : 0;
+
     const logData = { date, mileage: mNum, liters: lNum, cost: cNum, fuel_type: 'Pertalite', notes: '', efficiency };
     if (editingId) onEditLog(editingId, logData);
     else onAddLog(logData);
@@ -317,38 +334,6 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
                       onChange={(e) => setDate(e.target.value)}
                       className="w-full py-2.5 px-3.5 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 text-sm transition-all"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                      Odometer (km) — Saat Isi BBM
-                    </label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold text-sm">
-                        <Gauge className="w-4 h-4" />
-                      </span>
-                      <input
-                        id="fuel-mileage"
-                        type="number"
-                        required
-                        placeholder="Contoh: 25000"
-                        value={mileage}
-                        onChange={(e) => setMileage(e.target.value ? Number(e.target.value) : '')}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 text-sm font-semibold transition-all"
-                      />
-                      <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[11px] font-bold text-slate-400 pointer-events-none">km</span>
-                    </div>
-                    {editingId === null && mileage && Number(mileage) > 0 && logs.length > 0 && (
-                      <motion.p
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-[12px] text-indigo-500 dark:text-indigo-400 mt-2 font-medium flex items-center gap-1.5"
-                      >
-                        <TrendingUp className="w-3.5 h-3.5" />
-                        Sejak pengisian terakhir:{' '}
-                        <b>{(Number(mileage) - Math.max(...logs.map(l => l.mileage))).toLocaleString('id-ID')} km</b>
-                      </motion.p>
-                    )}
                   </div>
 
                   <div>
