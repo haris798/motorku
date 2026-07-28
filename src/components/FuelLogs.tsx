@@ -4,7 +4,7 @@ import { formatIDR } from '../utils/export';
 import { fetchJarakRecords } from '../lib/supabaseClient';
 import {
   Plus, Trash2, Edit3, Calendar, Search, Fuel, X, ArrowUpDown, AlertCircle, Sparkles,
-  TrendingUp, Droplets, DollarSign, Gauge, ListFilter, Clock
+  TrendingUp, Droplets, DollarSign, Gauge, ListFilter, Clock, Satellite
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -31,6 +31,8 @@ const scaleIn = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+const gpsIndicator = <Satellite className="w-2.5 h-2.5 text-cyan-500 shrink-0" />;
+
 const getEfficiencyBadge = (eff: number | undefined) => {
   if (!eff) return (
     <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded-full font-semibold">
@@ -40,16 +42,25 @@ const getEfficiencyBadge = (eff: number | undefined) => {
   if (eff > 45) return (
     <span className="text-[11px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full font-bold inline-flex items-center gap-1.5 border border-emerald-200/60 dark:border-emerald-900/30">
       <Sparkles className="w-3 h-3" /> Sangat Irit ({eff.toFixed(1)} km/L)
+      <span className="inline-flex items-center gap-1 text-[9px] text-emerald-500/70 dark:text-emerald-400/60 ml-0.5 border-l border-emerald-200/50 dark:border-emerald-800/30 pl-2">
+        {gpsIndicator} GPS
+      </span>
     </span>
   );
   if (eff > 35) return (
     <span className="text-[11px] bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 px-3 py-1 rounded-full font-bold inline-flex items-center gap-1.5 border border-amber-200/60 dark:border-amber-900/30">
       Normal ({eff.toFixed(1)} km/L)
+      <span className="inline-flex items-center gap-1 text-[9px] text-amber-500/70 dark:text-amber-400/60 ml-0.5 border-l border-amber-200/50 dark:border-amber-800/30 pl-2">
+        {gpsIndicator} GPS
+      </span>
     </span>
   );
   return (
     <span className="text-[11px] bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 px-3 py-1 rounded-full font-bold inline-flex items-center gap-1.5 border border-rose-200/60 dark:border-rose-900/30">
       Boros ({eff.toFixed(1)} km/L)
+      <span className="inline-flex items-center gap-1 text-[9px] text-rose-500/70 dark:text-rose-400/60 ml-0.5 border-l border-rose-200/50 dark:border-rose-800/30 pl-2">
+        {gpsIndicator} GPS
+      </span>
     </span>
   );
 };
@@ -213,7 +224,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
             {[
               { icon: Droplets, label: 'Total Liter', value: `${totalLiters.toFixed(1)} L` },
               { icon: DollarSign, label: 'Total Biaya', value: formatIDR(totalFuelCost) },
-              { icon: TrendingUp, label: 'Rata-rata Efisiensi', value: avgEff > 0 ? `${avgEff.toFixed(1)} km/L` : '-' },
+              { icon: TrendingUp, label: 'Rata-rata Efisiensi', value: avgEff > 0 ? `${avgEff.toFixed(1)} km/L` : '-', sub: avgEff > 0 ? 'via GPS' : '' },
               { icon: Gauge, label: 'Total Pencatatan', value: `${logs.length}x isi` },
             ].map((item, i) => (
               <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
@@ -221,7 +232,14 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
                   <item.icon className="w-3 h-3" />
                   {item.label}
                 </div>
-                <span className="text-sm md:text-base font-bold">{item.value}</span>
+                <span className="text-sm md:text-base font-bold flex items-center gap-1">
+                  {item.value}
+                  {item.sub && (
+                    <span className="inline-flex items-center gap-0.5 text-[8px] font-medium text-emerald-300/80 dark:text-emerald-400/60">
+                      <Satellite className="w-2.5 h-2.5" />
+                    </span>
+                  )}
+                </span>
               </div>
             ))}
           </div>

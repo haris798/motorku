@@ -9,7 +9,7 @@ import {
 import {
   Gauge, Droplets, Fuel, AlertTriangle, CheckCircle2, TrendingUp, Coins, Activity,
   RefreshCw, Timer, Zap, Flame,
-  Battery, Wrench, Clock, Target, Milestone
+  Battery, Wrench, Clock, Target, Milestone, Satellite
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -411,6 +411,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
             iconColor: 'text-emerald-600 dark:text-emerald-400',
             decimals: 1,
             sub: totalLiters > 0 ? `${totalLiters.toFixed(1)}L total terpakai` : null,
+            gpsBadge: avgEfficiency > 0,
           },
           {
             icon: Coins, label: 'Total Pengeluaran', value: totalExpenses,
@@ -460,9 +461,16 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
                   <span className="text-xl md:text-2xl font-extrabold text-slate-300 dark:text-slate-600">—</span>
                 )}
               </div>
-              {metric.sub && (
-                <p className="text-[11px] text-slate-400 mt-1.5 truncate">{metric.sub}</p>
-              )}
+              <div className="flex items-center gap-1.5 mt-1.5">
+                {metric.sub && (
+                  <p className="text-[11px] text-slate-400 truncate">{metric.sub}</p>
+                )}
+                {'gpsBadge' in metric && metric.gpsBadge && (
+                  <span className="inline-flex items-center gap-0.5 text-[8px] font-medium text-emerald-500/60 dark:text-emerald-400/50 shrink-0">
+                    <Satellite className="w-2.5 h-2.5" /> GPS
+                  </span>
+                )}
+              </div>
             </div>
           </motion.div>
         ))}
