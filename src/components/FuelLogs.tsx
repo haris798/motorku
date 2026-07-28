@@ -58,6 +58,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [mileage, setMileage] = useState<number | ''>('');
   const [cost, setCost] = useState<number | ''>('');
   const [formError, setFormError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,6 +67,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
 
   const resetForm = () => {
     setDate(new Date().toISOString().split('T')[0]);
+    setMileage('');
     setCost('');
     setFormError(null);
     setEditingId(null);
@@ -80,6 +82,7 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
   const handleOpenEdit = (log: FuelLog) => {
     setEditingId(log.id);
     setDate(log.date);
+    setMileage(log.mileage);
     setCost(log.cost);
     setFormError(null);
     setIsFormOpen(true);
@@ -115,15 +118,13 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
       setFormError('Biaya pembelian bbm (Rp) harus lebih besar dari 0.');
       return;
     }
+    const mNum = Number(mileage);
+    if (!mileage || mNum <= 0) {
+      setFormError('Odometer (km) saat pembelian harus diisi.');
+      return;
+    }
     const pricePerLiter = (settings?.fuelPricePerLiter || 10) * 1000;
     const lNum = Number((cNum / pricePerLiter).toFixed(2));
-    let mNum = 0;
-    if (editingId) {
-      const existing = logs.find(l => l.id === editingId);
-      mNum = existing ? existing.mileage : 0;
-    } else {
-      mNum = logs.length > 0 ? Math.max(...logs.map(l => l.mileage)) : 0;
-    }
     const efficiency = calculateEfficiencyValue(mNum, lNum);
     const logData = { date, mileage: mNum, liters: lNum, cost: cNum, fuel_type: 'Pertalite', notes: '', efficiency };
     if (editingId) onEditLog(editingId, logData);
@@ -316,6 +317,38 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
                       onChange={(e) => setDate(e.target.value)}
                       className="w-full py-2.5 px-3.5 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 text-sm transition-all"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Odometer (km) — Saat Isi BBM
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold text-sm">
+                        <Gauge className="w-4 h-4" />
+                      </span>
+                      <input
+                        id="fuel-mileage"
+                        type="number"
+                        required
+                        placeholder="Contoh: 25000"
+                        value={mileage}
+                        onChange={(e) => setMileage(e.target.value ? Number(e.target.value) : '')}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 text-sm font-semibold transition-all"
+                      />
+                      <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[11px] font-bold text-slate-400 pointer-events-none">km</span>
+                    </div>
+                    {editingId === null && mileage && Number(mileage) > 0 && logs.length > 0 && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-[12px] text-indigo-500 dark:text-indigo-400 mt-2 font-medium flex items-center gap-1.5"
+                      >
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        Sejak pengisian terakhir:{' '}
+                        <b>{(Number(mileage) - Math.max(...logs.map(l => l.mileage))).toLocaleString('id-ID')} km</b>
+                      </motion.p>
+                    )}
                   </div>
 
                   <div>
