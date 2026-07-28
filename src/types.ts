@@ -82,11 +82,11 @@ export interface ColotaLocation {
 /**
  * Calculated daily distance traveled from location data
  */
-export interface JarakTempuh {
+export interface Jarak {
   id: string;
   user_id?: string;
   date: string; // tanggal perjalanan (YYYY-MM-DD)
-  total_distance_km: number; // total jarak tempuh dalam kilometer
+  total_km: number; // total jarak tempuh dalam kilometer
   source: 'colota' | 'manual';
   created_at?: string;
   updated_at?: string;

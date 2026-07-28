@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { OilLog, FuelLog, ColotaLocation, JarakTempuh } from '../types';
+import { OilLog, FuelLog, ColotaLocation, Jarak } from '../types';
 import { calculateTotalDistance } from '../utils/distance';
 
 let supabaseInstance: SupabaseClient | null = null;
@@ -351,7 +351,7 @@ export async function syncWithSupabase(
 }
 
 // ============================================================
-// NEW: Functions for colota_locations and jarak_tempuh
+// NEW: Functions for colota_locations and jarak
 // ============================================================
 
 /**
@@ -390,7 +390,7 @@ export async function fetchLocationsByDate(
 }
 
 /**
- * Calculate daily distance from colota_locations and save to jarak_tempuh.
+ * Calculate daily distance from colota_locations and save to jarak.
  * Uses the Haversine formula via calculateTotalDistance().
  * Maps colota field names (lat, lon, tst, vel) to the expected format.
  */
@@ -433,11 +433,11 @@ export async function calculateAndSaveDailyDistance(
     // 3. Calculate total distance using Haversine formula
     const totalDistanceKm = calculateTotalDistance(mappedLocations);
 
-    // 4. Save or update the result in jarak_tempuh
-    const { error: upsertError } = await client.from('jarak_tempuh').upsert({
+    // 4. Save or update the result in jarak
+    const { error: upsertError } = await client.from('jarak').upsert({
       user_id: user.id,
       date,
-      total_distance_km: totalDistanceKm,
+      total_km: totalDistanceKm,
       source: 'colota',
       updated_at: new Date().toISOString()
     }, {
@@ -464,10 +464,10 @@ export async function calculateAndSaveDailyDistance(
 }
 
 /**
- * Fetch all jarak_tempuh records for the logged-in user.
+ * Fetch all jarak records for the logged-in user.
  */
-export async function fetchJarakTempuh(): Promise<{
-  records: JarakTempuh[];
+export async function fetchJarakRecords(): Promise<{
+  records: Jarak[];
   error: string | null;
 }> {
   const client = getSupabaseClient();
@@ -482,7 +482,7 @@ export async function fetchJarakTempuh(): Promise<{
     }
 
     const { data, error } = await client
-      .from('jarak_tempuh')
+      .from('jarak')
       .select('*')
       .eq('user_id', user.id)
       .order('date', { ascending: false });
@@ -491,7 +491,7 @@ export async function fetchJarakTempuh(): Promise<{
       return { records: [], error: `Gagal mengambil jarak tempuh: ${error.message}` };
     }
 
-    return { records: (data || []) as JarakTempuh[], error: null };
+    return { records: (data || []) as Jarak[], error: null };
   } catch (err: any) {
     return { records: [], error: err.message || 'Terjadi kesalahan.' };
   }
@@ -500,13 +500,13 @@ export async function fetchJarakTempuh(): Promise<{
 /**
  * Call get_jarak RPC and fetch total distance from jarak table
  */
-export async function fetchJarakTotal(): Promise<{ total_distance: number; error: string | null }> {
+export async function fetchJarakTotal(): Promise<{ total_km: number; error: string | null }> {
   const client = getSupabaseClient();
-  if (!client) return { total_distance: 0, error: 'Supabase belum dikonfigurasi.' };
+  if (!client) return { total_km: 0, error: 'Supabase belum dikonfigurasi.' };
   
   try {
     const { data: { user }, error: authError } = await client.auth.getUser();
-    if (authError || !user) return { total_distance: 0, error: 'Silakan login terlebih dahulu.' };
+    if (authError || !user) return { total_km: 0, error: 'Silakan login terlebih dahulu.' };
 
     // Trigger the RPC
     await client.rpc('get_jarak');
@@ -514,17 +514,17 @@ export async function fetchJarakTotal(): Promise<{ total_distance: number; error
     // Fetch from jarak table
     const { data, error } = await client
       .from('jarak')
-      .select('total_distance')
+      .select('total_km')
       .eq('user_id', user.id)
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      return { total_distance: 0, error: `Gagal fetch jarak: ${error.message}` };
+      return { total_km: 0, error: `Gagal fetch jarak: ${error.message}` };
     }
 
-    return { total_distance: data?.total_distance || 0, error: null };
+    return { total_km: data?.total_km || 0, error: null };
   } catch (err: any) {
-    return { total_distance: 0, error: err.message || 'Terjadi kesalahan saat mengambil jarak.' };
+    return { total_km: 0, error: err.message || 'Terjadi kesalahan saat mengambil jarak.' };
   }
 }
 
@@ -541,7 +541,7 @@ export async function resetJarakTotal(): Promise<{ success: boolean; error: stri
 
     const { error } = await client
       .from('jarak')
-      .update({ total_distance: 0 })
+      .update({ total_km: 0 })
       .eq('user_id', user.id);
 
     if (error) {
@@ -631,23 +631,29 @@ CREATE INDEX IF NOT EXISTS idx_colota_locations_received_at
   ON public.colota_locations (received_at);
 
 -- ============================================================
--- 5. TABEL BARU: Jarak Tempuh Harian (jarak_tempuh)
+-- 5. TABEL BARU: Jarak Tempuh Harian (jarak)
 -- Menyimpan hasil kalkulasi jarak tempuh harian dari data GPS
 -- ============================================================
-CREATE TABLE IF NOT EXISTS jarak_tempuh (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  date DATE NOT NULL,
-  total_distance_km DOUBLE PRECISION NOT NULL DEFAULT 0,
-  source TEXT NOT NULL DEFAULT 'colota' CHECK (source IN ('colota', 'manual')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  -- Setiap user hanya boleh punya 1 data per tanggal per sumber
-  UNIQUE (user_id, date, source)
-);
+CREATE TABLE IF NOT EXISTS public.jarak (
+  id uuid not null default gen_random_uuid (),
+  user_id uuid null,
+  date date not null,
+  total_km double precision not null default 0,
+  source text not null default 'colota'::text,
+  created_at timestamp with time zone not null default timezone ('utc'::text, now()),
+  updated_at timestamp with time zone not null default timezone ('utc'::text, now()),
+  constraint jarak_pkey primary key (id),
+  constraint jarak_user_id_date_source_key unique (user_id, date, source),
+  constraint jarak_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE,
+  constraint jarak_source_check check (
+    (
+      source = any (array['colota'::text, 'manual'::text])
+    )
+  )
+) TABLESPACE pg_default;
 
-CREATE INDEX IF NOT EXISTS idx_jarak_tempuh_user_date
-  ON jarak_tempuh (user_id, date);
+CREATE INDEX IF NOT EXISTS idx_jarak_user_date
+  ON jarak (user_id, date);
 
 -- ============================================================
 -- AKTIFKAN ROW LEVEL SECURITY
@@ -657,7 +663,7 @@ ALTER TABLE fuel_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 -- colota_locations tidak pakai RLS karena tidak ada kolom user
 -- ALTER TABLE colota_locations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE jarak_tempuh ENABLE ROW LEVEL SECURITY;
+ALTER TABLE jarak ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- BUAT POLICY UNTUK RLS
@@ -676,7 +682,7 @@ CREATE POLICY "Pengguna hanya bisa melihat pengaturannya sendiri"
 -- If you need per-user isolation, add a user_id column to the table.
 
 CREATE POLICY "Pengguna hanya bisa melihat data jarak tempuhnya sendiri"
-  ON jarak_tempuh FOR ALL USING (auth.uid() = user_id);
+  ON jarak FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================================
 -- OPSIONAL: Jadwalkan auto-hitung jarak tempuh setiap jam 18:00
@@ -698,7 +704,7 @@ CREATE POLICY "Pengguna hanya bisa melihat data jarak tempuhnya sendiri"
 --   end_epoch := EXTRACT(EPOCH FROM (target_date + INTERVAL '1 day')::timestamp)::BIGINT;
 --
 --   FOR user_row IN SELECT DISTINCT id FROM auth.users LOOP
---     INSERT INTO jarak_tempuh (user_id, date, total_distance_km, source, updated_at)
+--     INSERT INTO jarak (user_id, date, total_km, source, updated_at)
 --     VALUES (user_row.id, target_date, 0, 'colota', now())
 --     ON CONFLICT (user_id, date, source) DO NOTHING;
 --   END LOOP;

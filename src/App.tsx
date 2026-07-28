@@ -209,7 +209,7 @@ export default function App() {
     }
   }, [oilLogs, fuelLogs, settings.telegram.enabled]);
 
-  // 5. Auto-sync jarak_tempuh setiap hari jam 18:00
+  // 5. Auto-sync jarak setiap hari jam 18:00
   useEffect(() => {
     if (!isOnline || !user || !settings.supabase.connected) return;
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { OilLog, FuelLog, AppSettings, JarakTempuh } from '../types';
+import { OilLog, FuelLog, AppSettings, Jarak } from '../types';
 import { formatIDR } from '../utils/export';
-import { fetchJarakTempuh, calculateAndSaveDailyDistance, fetchJarakTotal, resetJarakTotal } from '../lib/supabaseClient';
+import { fetchJarakRecords, calculateAndSaveDailyDistance, fetchJarakTotal, resetJarakTotal } from '../lib/supabaseClient';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line, AreaChart, Area
@@ -168,7 +168,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
     }));
 
   // ── Jarak Tempuh State ────────────────────────────────────────────────────
-  const [jarakTempuhRecords, setJarakTempuhRecords] = useState<JarakTempuh[]>([]);
+  const [jarakRecords, setJarakRecords] = useState<Jarak[]>([]);
   const [jarakLoading, setJarakLoading] = useState(false);
   const [jarakError, setJarakError] = useState<string | null>(null);
   const [calculatingToday, setCalculatingToday] = useState(false);
@@ -177,12 +177,12 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
 
   const [jarakTotal, setJarakTotal] = useState(0);
 
-  const loadJarakTempuh = async () => {
+  const loadJarak = async () => {
     setJarakLoading(true); setJarakError(null);
     try {
-      const { records, error } = await fetchJarakTempuh();
+      const { records, error } = await fetchJarakRecords();
       if (error) setJarakError(error);
-      else setJarakTempuhRecords(records);
+      else setJarakRecords(records);
 
       // Fetch the new total distance
       const { total_distance } = await fetchJarakTotal();
@@ -192,7 +192,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
     } finally { setJarakLoading(false); }
   };
 
-  useEffect(() => { loadJarakTempuh(); }, []);
+  useEffect(() => { loadJarak(); }, []);
 
   const handleCalculateToday = async () => {
     setCalculatingToday(true); setCalcMessage(null);
@@ -200,7 +200,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
       const todayStr = new Date().toISOString().split('T')[0];
       const result = await calculateAndSaveDailyDistance(todayStr);
       setCalcMessage(result.message);
-      if (result.success) loadJarakTempuh();
+      if (result.success) loadJarak();
     } catch (err: any) { setCalcMessage(`Error: ${err.message}`); }
     finally {
       setCalculatingToday(false);
@@ -215,7 +215,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
       const { success, error } = await resetJarakTotal();
       if (success) {
         setCalcMessage('Total jarak tempuh berhasil direset menjadi 0.');
-        loadJarakTempuh(); // Refresh jarak
+        loadJarak(); // Refresh jarak
       } else {
         setCalcMessage(`Error: ${error}`);
       }
@@ -227,17 +227,17 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
     }
   };
 
-  const jarakChartData = [...jarakTempuhRecords]
+  const jarakChartData = [...jarakRecords]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(-14)
     .map(r => ({
       date: new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-      'Jarak (km)': Number(r.total_distance_km.toFixed(1)),
+      'Jarak (km)': Number(r.total_km.toFixed(1)),
     }));
 
-  const totalJarak = jarakTempuhRecords.reduce((sum, r) => sum + r.total_distance_km, 0);
-  const avgDailyJarak = jarakTempuhRecords.length > 0 ? totalJarak / jarakTempuhRecords.length : 0;
-  const maxJarak = jarakTempuhRecords.length > 0 ? Math.max(...jarakTempuhRecords.map(r => r.total_distance_km)) : 0;
+  const totalJarak = jarakRecords.reduce((sum, r) => sum + r.total_km, 0);
+  const avgDailyJarak = jarakRecords.length > 0 ? totalJarak / jarakRecords.length : 0;
+  const maxJarak = jarakRecords.length > 0 ? Math.max(...jarakRecords.map(r => r.total_km)) : 0;
 
   // Chart style helpers
   const chartTooltipStyle = {
@@ -815,7 +815,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   id="btn-refresh-jarak"
-                  onClick={loadJarakTempuh}
+                  onClick={loadJarak}
                   disabled={jarakLoading}
                   className="p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 hover:text-cyan-600 transition-all cursor-pointer"
                   title="Refresh"
@@ -851,7 +851,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
           </AnimatePresence>
 
           {/* Summary mini-cards */}
-          {jarakTempuhRecords.length > 0 && (
+          {jarakRecords.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -886,7 +886,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
 
           {/* Chart */}
           <div className="h-56 md:h-64 w-full px-2 pb-4">
-            {jarakLoading && jarakTempuhRecords.length === 0 ? (
+            {jarakLoading && jarakRecords.length === 0 ? (
               <div className="w-full h-full flex items-center justify-center text-slate-400 gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="text-sm">Memuat data...</span>
@@ -969,7 +969,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
           </div>
 
           {/* Bottom info bar */}
-          {jarakTempuhRecords.length > 0 && (
+          {jarakRecords.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -977,14 +977,14 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
             >
               <span className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-                {jarakTempuhRecords.length} hari tercatat
+                {jarakRecords.length} hari tercatat
               </span>
               <span>Sumber: colota_locations (Haversine)</span>
             </motion.div>
           )}
 
           {/* Empty state for no records at all */}
-          {!jarakLoading && !jarakError && jarakTempuhRecords.length === 0 && (
+          {!jarakLoading && !jarakError && jarakRecords.length === 0 && (
             <div className="mx-5 mb-4 pt-3 border-t border-slate-50 dark:border-slate-800/60 text-center">
               <p className="text-[10px] text-slate-400">Integrasikan perangkat GPS untuk mulai melacak jarak tempuh harian</p>
             </div>
