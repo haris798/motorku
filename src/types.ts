@@ -58,3 +58,16 @@ export interface SyncStatus {
   isSyncing: boolean;
 }
 
+/**
+ * Record from the jarak table — daily distance traveled
+ */
+export interface Jarak {
+  id: string;
+  user_id?: string;
+  date: string;
+  total_km: number;
+  source: string;
+  created_at?: string;
+  updated_at?: string;
+}
+

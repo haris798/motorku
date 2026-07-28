@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { OilLog, FuelLog } from '../types';
+import { OilLog, FuelLog, Jarak } from '../types';
 
 let supabaseInstance: SupabaseClient | null = null;
 let currentUrl = '';
@@ -349,6 +349,37 @@ export async function syncWithSupabase(
   }
 }
 
+// ============================================================
+// Jarak Tempuh Harian — fetch records grouped for Dashboard
+// ============================================================
+
+/**
+ * Fetch all jarak records for the logged-in user (to sum by month in the UI).
+ */
+export async function fetchJarakRecords(): Promise<{
+  records: Jarak[];
+  error: string | null;
+}> {
+  const client = getSupabaseClient();
+  if (!client) return { records: [], error: 'Supabase belum dikonfigurasi.' };
+
+  try {
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError || !user) return { records: [], error: 'Silakan login terlebih dahulu.' };
+
+    const { data, error } = await client
+      .from('jarak')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false });
+
+    if (error) return { records: [], error: `Gagal mengambil jarak tempuh: ${error.message}` };
+    return { records: (data || []) as Jarak[], error: null };
+  } catch (err: any) {
+    return { records: [], error: err.message || 'Terjadi kesalahan.' };
+  }
+}
+
 // SQL Script template to create ALL Supabase tables
 export const SUPABASE_SQL_SCRIPT = `-- SCRIPT PEMBUATAN TABEL UNTUK APLIKASI MOTOR.KU TRACKER
 -- Jalankan kode berikut di SQL Editor Supabase Anda:
@@ -397,9 +428,21 @@ CREATE TABLE IF NOT EXISTS user_settings (
 );
 
 -- ============================================================
--- 4. TABEL: Pengaturan Pengguna (sudah ada di atas — skip duplikasi)
+-- 4. TABEL: Jarak Tempuh Harian
 -- ============================================================
--- (Tidak ada tabel tambahan. Hanya 3 tabel utama: oil_logs, fuel_logs, user_settings)
+CREATE TABLE IF NOT EXISTS jarak (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  total_km DOUBLE PRECISION NOT NULL DEFAULT 0,
+  source TEXT NOT NULL DEFAULT 'colota',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE (user_id, date, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_jarak_user_date
+  ON jarak (user_id, date);
 
 -- ============================================================
 -- AKTIFKAN ROW LEVEL SECURITY
@@ -407,6 +450,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
 ALTER TABLE oil_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE jarak ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- BUAT POLICY UNTUK RLS
@@ -419,5 +463,8 @@ CREATE POLICY "Pengguna hanya bisa melihat data bbmnya sendiri"
 
 CREATE POLICY "Pengguna hanya bisa melihat pengaturannya sendiri"
   ON user_settings FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Pengguna hanya bisa melihat data jarak tempuhnya sendiri"
+  ON jarak FOR ALL USING (auth.uid() = user_id);
 
 `;

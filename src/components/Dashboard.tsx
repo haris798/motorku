@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { OilLog, FuelLog, AppSettings } from '../types';
+import { OilLog, FuelLog, AppSettings, Jarak } from '../types';
 import { formatIDR } from '../utils/export';
+import { fetchJarakRecords } from '../lib/supabaseClient';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line
@@ -175,6 +176,33 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
     padding: '10px 14px',
     boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
   };
+
+  // ── Jarak Tempuh (bulanan) ───────────────────────────────────────────────
+  const [jarakData, setJarakData] = useState<Jarak[]>([]);
+  const [jarakLoading, setJarakLoading] = useState(false);
+
+  const loadJarak = async () => {
+    setJarakLoading(true);
+    try {
+      const { records, error } = await fetchJarakRecords();
+      if (!error) setJarakData(records);
+    } catch { /* ignore */ }
+    finally { setJarakLoading(false); }
+  };
+
+  useEffect(() => { loadJarak(); }, []);
+
+  // Group jarak by month and sum total_km
+  const jarakMonthMap = new Map<string, number>();
+  for (const r of jarakData) {
+    const key = getMonthYearKey(r.date);
+    jarakMonthMap.set(key, (jarakMonthMap.get(key) || 0) + r.total_km);
+  }
+  const sortedJarakMonths = Array.from(jarakMonthMap.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  const thisMonthKey = getMonthYearKey(new Date().toISOString());
+  const thisMonthKm = jarakMonthMap.get(thisMonthKey) || 0;
+  const totalKm = jarakData.reduce((sum, r) => sum + r.total_km, 0);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -365,11 +393,17 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
       <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {[
           {
-            icon: Milestone, label: 'Odometer Terakhir', value: currentMileage, suffix: ' km',
-            color: 'from-indigo-500 to-blue-600', bgLight: 'bg-indigo-50 dark:bg-indigo-950/30',
-            iconColor: 'text-indigo-600 dark:text-indigo-400',
-            decimals: 0,
-            sub: odometerSpan > 0 ? `Total tercatat: ${odometerSpan.toLocaleString('id-ID')} km` : null,
+            icon: Milestone,
+            label: 'Jarak Bulan Ini',
+            value: jarakLoading ? 0 : thisMonthKm,
+            suffix: ' km',
+            color: 'from-cyan-500 to-blue-600',
+            bgLight: 'bg-cyan-50 dark:bg-cyan-950/30',
+            iconColor: 'text-cyan-600 dark:text-cyan-400',
+            decimals: 1,
+            sub: totalKm > 0
+              ? `${sortedJarakMonths.length} bulan tercatat · Total ${totalKm.toFixed(1)} km`
+              : !jarakLoading ? 'Belum ada data jarak tempuh' : 'Memuat...',
           },
           {
             icon: TrendingUp, label: 'Rata-rata Konsumsi', value: avgEfficiency, suffix: ' km/L',
