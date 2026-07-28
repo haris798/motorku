@@ -497,6 +497,63 @@ export async function fetchJarakTempuh(): Promise<{
   }
 }
 
+/**
+ * Call get_jarak RPC and fetch total distance from jarak table
+ */
+export async function fetchJarakTotal(): Promise<{ total_distance: number; error: string | null }> {
+  const client = getSupabaseClient();
+  if (!client) return { total_distance: 0, error: 'Supabase belum dikonfigurasi.' };
+  
+  try {
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError || !user) return { total_distance: 0, error: 'Silakan login terlebih dahulu.' };
+
+    // Trigger the RPC
+    await client.rpc('get_jarak');
+
+    // Fetch from jarak table
+    const { data, error } = await client
+      .from('jarak')
+      .select('total_distance')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      return { total_distance: 0, error: `Gagal fetch jarak: ${error.message}` };
+    }
+
+    return { total_distance: data?.total_distance || 0, error: null };
+  } catch (err: any) {
+    return { total_distance: 0, error: err.message || 'Terjadi kesalahan saat mengambil jarak.' };
+  }
+}
+
+/**
+ * Reset total distance in jarak table
+ */
+export async function resetJarakTotal(): Promise<{ success: boolean; error: string | null }> {
+  const client = getSupabaseClient();
+  if (!client) return { success: false, error: 'Supabase belum dikonfigurasi.' };
+  
+  try {
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError || !user) return { success: false, error: 'Silakan login terlebih dahulu.' };
+
+    const { error } = await client
+      .from('jarak')
+      .update({ total_distance: 0 })
+      .eq('user_id', user.id);
+
+    if (error) {
+      return { success: false, error: `Gagal reset jarak: ${error.message}` };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Terjadi kesalahan saat reset jarak.' };
+  }
+}
+
 // SQL Script template to create ALL Supabase tables
 export const SUPABASE_SQL_SCRIPT = `-- SCRIPT PEMBUATAN TABEL UNTUK APLIKASI MOTOR.KU TRACKER
 -- Jalankan kode berikut di SQL Editor Supabase Anda:

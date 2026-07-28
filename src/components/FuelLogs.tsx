@@ -487,8 +487,8 @@ export default function FuelLogs({ logs, onAddLog, onEditLog, onDeleteLog, setti
                     <div className="text-center">
                       <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Odometer</span>
                       <div className="flex items-baseline justify-center gap-0.5">
-                        <span className="text-sm font-extrabold text-slate-800 dark:text-white">{log.mileage.toLocaleString('id-ID')}</span>
-                        <span className="text-[10px] text-slate-400">km</span>
+                        <span className="text-sm font-extrabold text-slate-800 dark:text-white">-</span>
+                        <span className="text-[10px] text-slate-400"></span>
                       </div>
                     </div>
                     <div className="text-center">

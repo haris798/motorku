@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { OilLog, FuelLog, AppSettings, JarakTempuh } from '../types';
 import { formatIDR } from '../utils/export';
-import { fetchJarakTempuh, calculateAndSaveDailyDistance } from '../lib/supabaseClient';
+import { fetchJarakTempuh, calculateAndSaveDailyDistance, fetchJarakTotal, resetJarakTotal } from '../lib/supabaseClient';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line, AreaChart, Area
@@ -9,7 +9,7 @@ import {
 import {
   Gauge, Droplets, Fuel, AlertTriangle, CheckCircle2, TrendingUp, Coins, Activity,
   MapPin, RefreshCw, Loader2, Timer, Zap, Flame,
-  Battery, Wrench, Clock, Target, Navigation, Milestone
+  Battery, Wrench, Clock, Target, Navigation, Milestone, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -134,7 +134,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
     ? logsWithEfficiency.reduce((sum, l) => sum + (l.efficiency || 0), 0) / logsWithEfficiency.length : 0;
   const totalOilCost = oilLogs.reduce((sum, l) => sum + l.cost, 0);
   const totalExpenses = totalFuelCost + totalOilCost;
-  const costPerKm = odometerSpan > 0 ? totalFuelCost / odometerSpan : 0;
+  const costPerKm = jarakTotal > 0 ? totalFuelCost / jarakTotal : 0;
 
   // Monthly chart data
   const monthlyDataMap = new Map<string, { month: string; fuel: number; oil: number }>();
@@ -172,7 +172,10 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
   const [jarakLoading, setJarakLoading] = useState(false);
   const [jarakError, setJarakError] = useState<string | null>(null);
   const [calculatingToday, setCalculatingToday] = useState(false);
+  const [resettingJarak, setResettingJarak] = useState(false);
   const [calcMessage, setCalcMessage] = useState<string | null>(null);
+
+  const [jarakTotal, setJarakTotal] = useState(0);
 
   const loadJarakTempuh = async () => {
     setJarakLoading(true); setJarakError(null);
@@ -180,6 +183,10 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
       const { records, error } = await fetchJarakTempuh();
       if (error) setJarakError(error);
       else setJarakTempuhRecords(records);
+
+      // Fetch the new total distance
+      const { total_distance } = await fetchJarakTotal();
+      setJarakTotal(total_distance);
     } catch (err: any) {
       setJarakError(err.message || 'Gagal memuat data jarak tempuh.');
     } finally { setJarakLoading(false); }
@@ -197,6 +204,25 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
     } catch (err: any) { setCalcMessage(`Error: ${err.message}`); }
     finally {
       setCalculatingToday(false);
+      setTimeout(() => setCalcMessage(null), 5000);
+    }
+  };
+
+  const handleResetJarakBulanan = async () => {
+    if (!confirm('Anda yakin ingin mereset total jarak tempuh bulan ini? Data total akan diubah menjadi 0.')) return;
+    setResettingJarak(true); setCalcMessage(null);
+    try {
+      const { success, error } = await resetJarakTotal();
+      if (success) {
+        setCalcMessage('Total jarak tempuh berhasil direset menjadi 0.');
+        loadJarakTempuh(); // Refresh jarak
+      } else {
+        setCalcMessage(`Error: ${error}`);
+      }
+    } catch (err: any) {
+      setCalcMessage(`Error: ${err.message}`);
+    } finally {
+      setResettingJarak(false);
       setTimeout(() => setCalcMessage(null), 5000);
     }
   };
@@ -413,11 +439,11 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
       <motion.div variants={fadeUp} className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {[
           {
-            icon: Milestone, label: 'Odometer', value: currentMileage, suffix: ' km',
+            icon: Milestone, label: 'Jarak Tempuh', value: jarakTotal, suffix: ' km',
             color: 'from-indigo-500 to-blue-600', bgLight: 'bg-indigo-50 dark:bg-indigo-950/30',
             iconColor: 'text-indigo-600 dark:text-indigo-400',
-            decimals: 0,
-            sub: odometerSpan > 0 ? `+${odometerSpan.toLocaleString('id-ID')} km tercatat` : null,
+            decimals: 1,
+            sub: jarakTotal > 0 ? `${jarakTotal.toLocaleString('id-ID')} km dari Supabase` : null,
           },
           {
             icon: TrendingUp, label: 'Rata-rata Konsumsi', value: avgEfficiency, suffix: ' km/L',
@@ -441,7 +467,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
             color: 'from-amber-500 to-orange-600',
             formatCurrency: true,
             suffix: '/km',
-            sub: odometerSpan > 0 ? `${odometerSpan.toLocaleString('id-ID')} km jarak tempuh` : null,
+            sub: jarakTotal > 0 ? `${jarakTotal.toLocaleString('id-ID')} km jarak tempuh` : null,
           },
         ].map((metric, idx) => (
           <motion.div
@@ -758,6 +784,20 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
                 Jarak Tempuh Harian
               </h3>
               <div className="flex items-center gap-1.5">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  id="btn-reset-jarak"
+                  onClick={handleResetJarakBulanan}
+                  disabled={resettingJarak}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm mr-1"
+                >
+                  {resettingJarak ? (
+                    <><Loader2 className="w-3 h-3 animate-spin" /> Resetting</>
+                  ) : (
+                    <><Trash2 className="w-3 h-3" /> Reset Bulanan</>
+                  )}
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
