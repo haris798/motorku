@@ -1,15 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { OilLog, FuelLog, AppSettings, Jarak } from '../types';
+import { OilLog, FuelLog, AppSettings } from '../types';
 import { formatIDR } from '../utils/export';
-import { fetchJarakRecords, calculateAndSaveDailyDistance, fetchJarakTotal, resetJarakTotal } from '../lib/supabaseClient';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  LineChart, Line, AreaChart, Area
+  LineChart, Line
 } from 'recharts';
 import {
   Gauge, Droplets, Fuel, AlertTriangle, CheckCircle2, TrendingUp, Coins, Activity,
-  MapPin, RefreshCw, Loader2, Timer, Zap, Flame,
-  Battery, Wrench, Clock, Target, Navigation, Milestone, Trash2
+  RefreshCw, Timer, Zap, Flame,
+  Battery, Wrench, Clock, Target, Milestone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -134,7 +133,6 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
     ? logsWithEfficiency.reduce((sum, l) => sum + (l.efficiency || 0), 0) / logsWithEfficiency.length : 0;
   const totalOilCost = oilLogs.reduce((sum, l) => sum + l.cost, 0);
   const totalExpenses = totalFuelCost + totalOilCost;
-  const costPerKm = jarakTotal > 0 ? totalFuelCost / jarakTotal : 0;
 
   // Monthly chart data
   const monthlyDataMap = new Map<string, { month: string; fuel: number; oil: number }>();
@@ -166,78 +164,6 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
       'Efisiensi (km/L)': Number(log.efficiency?.toFixed(1)) || 0,
       'Rata-rata': Number(avgEfficiency.toFixed(1))
     }));
-
-  // ── Jarak Tempuh State ────────────────────────────────────────────────────
-  const [jarakRecords, setJarakRecords] = useState<Jarak[]>([]);
-  const [jarakLoading, setJarakLoading] = useState(false);
-  const [jarakError, setJarakError] = useState<string | null>(null);
-  const [calculatingToday, setCalculatingToday] = useState(false);
-  const [resettingJarak, setResettingJarak] = useState(false);
-  const [calcMessage, setCalcMessage] = useState<string | null>(null);
-
-  const [jarakTotal, setJarakTotal] = useState(0);
-
-  const loadJarak = async () => {
-    setJarakLoading(true); setJarakError(null);
-    try {
-      const { records, error } = await fetchJarakRecords();
-      if (error) setJarakError(error);
-      else setJarakRecords(records);
-
-      // Fetch the new total distance
-      const { total_distance } = await fetchJarakTotal();
-      setJarakTotal(total_distance);
-    } catch (err: any) {
-      setJarakError(err.message || 'Gagal memuat data jarak tempuh.');
-    } finally { setJarakLoading(false); }
-  };
-
-  useEffect(() => { loadJarak(); }, []);
-
-  const handleCalculateToday = async () => {
-    setCalculatingToday(true); setCalcMessage(null);
-    try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const result = await calculateAndSaveDailyDistance(todayStr);
-      setCalcMessage(result.message);
-      if (result.success) loadJarak();
-    } catch (err: any) { setCalcMessage(`Error: ${err.message}`); }
-    finally {
-      setCalculatingToday(false);
-      setTimeout(() => setCalcMessage(null), 5000);
-    }
-  };
-
-  const handleResetJarakBulanan = async () => {
-    if (!confirm('Anda yakin ingin mereset total jarak tempuh bulan ini? Data total akan diubah menjadi 0.')) return;
-    setResettingJarak(true); setCalcMessage(null);
-    try {
-      const { success, error } = await resetJarakTotal();
-      if (success) {
-        setCalcMessage('Total jarak tempuh berhasil direset menjadi 0.');
-        loadJarak(); // Refresh jarak
-      } else {
-        setCalcMessage(`Error: ${error}`);
-      }
-    } catch (err: any) {
-      setCalcMessage(`Error: ${err.message}`);
-    } finally {
-      setResettingJarak(false);
-      setTimeout(() => setCalcMessage(null), 5000);
-    }
-  };
-
-  const jarakChartData = [...jarakRecords]
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(-14)
-    .map(r => ({
-      date: new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-      'Jarak (km)': Number(r.total_km.toFixed(1)),
-    }));
-
-  const totalJarak = jarakRecords.reduce((sum, r) => sum + r.total_km, 0);
-  const avgDailyJarak = jarakRecords.length > 0 ? totalJarak / jarakRecords.length : 0;
-  const maxJarak = jarakRecords.length > 0 ? Math.max(...jarakRecords.map(r => r.total_km)) : 0;
 
   // Chart style helpers
   const chartTooltipStyle = {
@@ -436,14 +362,14 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
       </AnimatePresence>
 
       {/* ═══════════════════════ 3. CORE METRICS ═══════════════════════ */}
-      <motion.div variants={fadeUp} className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {[
           {
-            icon: Milestone, label: 'Jarak Tempuh', value: jarakTotal, suffix: ' km',
+            icon: Milestone, label: 'Odometer Terakhir', value: currentMileage, suffix: ' km',
             color: 'from-indigo-500 to-blue-600', bgLight: 'bg-indigo-50 dark:bg-indigo-950/30',
             iconColor: 'text-indigo-600 dark:text-indigo-400',
-            decimals: 1,
-            sub: jarakTotal > 0 ? `${jarakTotal.toLocaleString('id-ID')} km dari Supabase` : null,
+            decimals: 0,
+            sub: odometerSpan > 0 ? `Total tercatat: ${odometerSpan.toLocaleString('id-ID')} km` : null,
           },
           {
             icon: TrendingUp, label: 'Rata-rata Konsumsi', value: avgEfficiency, suffix: ' km/L',
@@ -459,15 +385,6 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
             color: 'from-rose-500 to-pink-600',
             formatCurrency: true,
             sub: `BBM ${formatIDR(totalFuelCost)} + Oli ${formatIDR(totalOilCost)}`,
-          },
-          {
-            icon: Zap, label: 'Biaya per km', value: costPerKm,
-            prefixFn: () => 'Rp', bgLight: 'bg-amber-50 dark:bg-amber-950/30',
-            iconColor: 'text-amber-600 dark:text-amber-400',
-            color: 'from-amber-500 to-orange-600',
-            formatCurrency: true,
-            suffix: '/km',
-            sub: jarakTotal > 0 ? `${jarakTotal.toLocaleString('id-ID')} km jarak tempuh` : null,
           },
         ].map((metric, idx) => (
           <motion.div
@@ -691,7 +608,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
         </motion.div>
       </div>
 
-      {/* ═══════════════════════ 5. FUEL EFFICIENCY + JARAK TEMPUH ═══════════════════════ */}
+      {/* ═══════════════════════ 5. FUEL EFFICIENCY ═══════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
         {/* ── Fuel Efficiency Trend ── */}
         <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-sm">
@@ -773,223 +690,6 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
           </div>
         </motion.div>
 
-        {/* ── Jarak Tempuh Harian ── */}
-        <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-sm">
-          <div className="p-5 pb-2">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400">
-                  <Navigation className="w-4 h-4" />
-                </div>
-                Jarak Tempuh Harian
-              </h3>
-              <div className="flex items-center gap-1.5">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  id="btn-reset-jarak"
-                  onClick={handleResetJarakBulanan}
-                  disabled={resettingJarak}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm mr-1"
-                >
-                  {resettingJarak ? (
-                    <><Loader2 className="w-3 h-3 animate-spin" /> Resetting</>
-                  ) : (
-                    <><Trash2 className="w-3 h-3" /> Reset Bulanan</>
-                  )}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  id="btn-calculate-today"
-                  onClick={handleCalculateToday}
-                  disabled={calculatingToday}
-                  className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                >
-                  {calculatingToday ? (
-                    <><Loader2 className="w-3 h-3 animate-spin" /> Hitung</>
-                  ) : (
-                    <><RefreshCw className="w-3 h-3" /> Hari Ini</>
-                  )}
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  id="btn-refresh-jarak"
-                  onClick={loadJarak}
-                  disabled={jarakLoading}
-                  className="p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 hover:text-cyan-600 transition-all cursor-pointer"
-                  title="Refresh"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${jarakLoading ? 'animate-spin' : ''}`} />
-                </motion.button>
-              </div>
-            </div>
-            <p className="text-xs text-slate-400">Berdasarkan data GPS (colota_locations)</p>
-          </div>
-
-          {/* Flash message */}
-          <AnimatePresence>
-            {calcMessage && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className={`mx-5 mb-3 px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2.5 border ${
-                  calcMessage.startsWith('Berhasil')
-                    ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300'
-                    : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-300'
-                }`}
-              >
-                <div className={`p-1 rounded-full ${
-                  calcMessage.startsWith('Berhasil') ? 'bg-emerald-200 dark:bg-emerald-900/50' : 'bg-amber-200 dark:bg-amber-900/50'
-                }`}>
-                  <CheckCircle2 className="w-3 h-3" />
-                </div>
-                <span>{calcMessage}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Summary mini-cards */}
-          {jarakRecords.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-3 gap-2 px-5 pb-3"
-            >
-              {[
-                { label: 'Total Jarak', value: totalJarak.toFixed(1), unit: 'km', color: 'cyan' },
-                { label: 'Rata-rata', value: avgDailyJarak.toFixed(1), unit: 'km/hari', color: 'violet' },
-                { label: 'Maksimal', value: maxJarak.toFixed(1), unit: 'km', color: 'amber' },
-              ].map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * i }}
-                  className={`p-2.5 rounded-xl border text-center ${
-                    s.color === 'cyan'
-                      ? 'bg-cyan-50/60 dark:bg-cyan-950/20 border-cyan-100/60 dark:border-cyan-900/30'
-                      : s.color === 'violet'
-                        ? 'bg-violet-50/60 dark:bg-violet-950/20 border-violet-100/60 dark:border-violet-900/30'
-                        : 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-100/60 dark:border-amber-900/30'
-                  }`}
-                >
-                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">{s.label}</span>
-                  <span className="text-base md:text-lg font-extrabold text-slate-800 dark:text-white tabular-nums">
-                    {s.value} <span className="text-[10px] font-normal text-slate-400">{s.unit}</span>
-                  </span>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-
-          {/* Chart */}
-          <div className="h-56 md:h-64 w-full px-2 pb-4">
-            {jarakLoading && jarakRecords.length === 0 ? (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Memuat data...</span>
-              </div>
-            ) : jarakError ? (
-              <div className="w-full h-full flex flex-col items-center justify-center px-6">
-                <div className="p-4 rounded-full bg-slate-50 dark:bg-slate-800/50 mb-3">
-                  <MapPin className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-                </div>
-                <p className="text-sm font-bold text-slate-500">{jarakError}</p>
-                <p className="text-xs text-slate-400 mt-1 text-center max-w-[260px]">
-                  Hubungkan Supabase dan jalankan SQL script di Pengaturan
-                </p>
-              </div>
-            ) : jarakChartData.length === 0 ? (
-              <div className="w-full h-full flex flex-col items-center justify-center px-6">
-                <div className="p-4 rounded-full bg-slate-50 dark:bg-slate-800/50 mb-3">
-                  <MapPin className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-                </div>
-                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Belum Ada Data</p>
-                <p className="text-xs text-slate-400 mt-1 text-center max-w-[240px]">
-                  Isi tabel colota_locations dengan data GPS, lalu klik "Hitung Hari Ini"
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={handleCalculateToday}
-                  disabled={calculatingToday}
-                  className="mt-3 px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {calculatingToday ? 'Menghitung...' : 'Hitung Hari Ini'}
-                </motion.button>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={jarakChartData} margin={{ top: 10, right: 5, left: -15, bottom: 5 }}>
-                  <defs>
-                    <linearGradient id="jarakGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                    </linearGradient>
-                    <filter id="glowChart">
-                      <feGaussianBlur stdDeviation="2" result="blur" />
-                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                    </filter>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" strokeOpacity={0.6} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" strokeOpacity={0.3} />
-                  <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#cbd5e1" className="dark:stroke-slate-800" />
-                  <YAxis
-                    tick={{ fill: '#94a3b8', fontSize: 11 }}
-                    stroke="#cbd5e1"
-                    className="dark:stroke-slate-800"
-                    tickFormatter={(v) => `${v}km`}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [`${value.toFixed(1)} km`, 'Jarak Tempuh']}
-                    contentStyle={chartTooltipStyle}
-                    labelStyle={{ fontWeight: 'bold', color: '#cbd5e1', marginBottom: 6 }}
-                    itemStyle={{ padding: '2px 0' }}
-                  />
-                  <Legend
-                    iconType="plainline"
-                    wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Jarak (km)"
-                    stroke="#06b6d4"
-                    strokeWidth={2.5}
-                    fill="url(#jarakGradient)"
-                    dot={{ fill: '#06b6d4', r: 3.5, stroke: '#fff', strokeWidth: 2 }}
-                    activeDot={{ r: 6, fill: '#06b6d4', stroke: '#fff', strokeWidth: 2 }}
-                    animationDuration={1200}
-                    animationEasing="ease-out"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Bottom info bar */}
-          {jarakRecords.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mx-5 mb-4 pt-3 border-t border-slate-50 dark:border-slate-800/60 flex items-center justify-between text-[10px] text-slate-400"
-            >
-              <span className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-                {jarakRecords.length} hari tercatat
-              </span>
-              <span>Sumber: colota_locations (Haversine)</span>
-            </motion.div>
-          )}
-
-          {/* Empty state for no records at all */}
-          {!jarakLoading && !jarakError && jarakRecords.length === 0 && (
-            <div className="mx-5 mb-4 pt-3 border-t border-slate-50 dark:border-slate-800/60 text-center">
-              <p className="text-[10px] text-slate-400">Integrasikan perangkat GPS untuk mulai melacak jarak tempuh harian</p>
-            </div>
-          )}
-        </motion.div>
       </div>
 
       {/* ═══════════════════════ FOOTER SPACER ═══════════════════════ */}

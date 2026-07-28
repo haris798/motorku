@@ -4,7 +4,6 @@ import { getSupabaseClient, syncWithSupabase } from './lib/supabaseClient';
 import { checkAndSendOilAlert } from './utils/telegram';
 import { exportToCSV, exportToPDF } from './utils/export';
 import { generateUUID } from './utils/uuid';
-import { calculateAndSaveDailyDistance } from './lib/supabaseClient';
 import Dashboard from './components/Dashboard';
 import OilLogs from './components/OilLogs';
 import FuelLogs from './components/FuelLogs';
@@ -209,42 +208,7 @@ export default function App() {
     }
   }, [oilLogs, fuelLogs, settings.telegram.enabled]);
 
-  // 5. Auto-sync jarak setiap hari jam 18:00
-  useEffect(() => {
-    if (!isOnline || !user || !settings.supabase.connected) return;
-
-    const AUTO_SYNC_KEY = 'jarak_autosync_date';
-    const SYNC_HOUR = 18; // 18:00 WIB
-
-    const checkAndRun = () => {
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
-      const lastSyncDate = localStorage.getItem(AUTO_SYNC_KEY);
-
-      // Only run if past 18:00 and not yet synced today
-      if (now.getHours() >= SYNC_HOUR && lastSyncDate !== today) {
-        console.log('[AutoSync] Menghitung jarak tempuh hari ini...');
-        calculateAndSaveDailyDistance(today).then((result) => {
-          if (result.success) {
-            console.log('[AutoSync] Berhasil:', result.message);
-            localStorage.setItem(AUTO_SYNC_KEY, today);
-          } else {
-            console.warn('[AutoSync] Gagal:', result.message);
-          }
-        });
-      }
-    };
-
-    // Run immediately on mount if conditions are met
-    checkAndRun();
-
-    // Then check every 60 seconds
-    const interval = setInterval(checkAndRun, 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [isOnline, user, settings.supabase.connected]);
-
-  // 6. Global Actions
+  // 5. Global Actions
   const handleUpdateSettings = useCallback((newSettings: AppSettings) => {
     setSettings(newSettings);
     localStorage.setItem('oil_tracker_settings', JSON.stringify(newSettings));
