@@ -239,9 +239,6 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
                   <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight font-display">
                     Dashboard Motor
                   </h1>
-                  <p className="text-indigo-200/80 dark:text-slate-400 text-sm mt-0.5">
-                    Pantau performa, efisiensi, dan biaya perawatan motor Anda
-                  </p>
                 </div>
               </div>
             </div>
@@ -314,7 +311,7 @@ export default function Dashboard({ oilLogs, fuelLogs, settings, onNavigate }: D
                       : remainingDays <= 0
                         ? `Batas hari sudah terlampaui! Segera ganti oli motor Anda.`
                         : `Tersisa ${remainingKm.toLocaleString('id-ID')} km atau ${remainingDays} hari lagi.`
-                      }
+                  }
                 </p>
               </div>
               <motion.button
